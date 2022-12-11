@@ -1,24 +1,23 @@
-#!/usr/bin/env ruby
+class Day1
+  INPUT = "day01.input"
 
-INPUT_FILE = "input"
+  def initialize
+    raw = File.read(INPUT).split("\n\n").map { |s| s.split("\n") }
+    @elves = raw.map { |e| e.map { |c| c.to_i } }
+  end
 
-def parse(input)
-    raw = File.read(input).split("\n\n").map { |s| s.split("\n") }
-    raw.map { |e| e.map { |c| c.to_i } }
-end
-
-def one(elves)
+  def one
     max_calories = 0
-    elves.each do |e|
+    @elves.each do |e|
         calories = e.sum
         max_calories = [max_calories, calories].max
     end
     max_calories
-end
+  end
 
-def two(elves)
+  def two
     top = []
-    elves.each do |e|
+    @elves.each do |e|
         calories = e.sum
         if top.length != 3
             top << calories
@@ -28,8 +27,5 @@ def two(elves)
         top.sort!
     end
     top.sum
+  end
 end
-
-elves = parse(INPUT_FILE)
-puts one(elves)
-puts two(elves)
