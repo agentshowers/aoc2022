@@ -11,21 +11,12 @@ class Day12
   end
 
   def one
-    (0..@m-1).each do |i|
-        (0..@n-1).each do |j|
-           return @dist[i][j] if @raw[i][j] == "S"
-        end
-    end
+    x, y = find("S").first
+    @dist[x][y]
   end
 
   def two
-    min = MAX_INT
-    (0..@m-1).each do |i|
-        (0..@n-1).each do |j|
-            min = [@dist[i][j], min].min if ["a", "S"].include?(@raw[i][j])
-        end
-    end
-    min
+    find("a").map { |i,j| @dist[i][j] }.min
   end
 
   private def build_map
