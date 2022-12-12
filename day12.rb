@@ -45,7 +45,7 @@ class Day12
     dest_x, dest_y = find("E").first
     @dist[dest_x][dest_y] = 0
     queue << [dest_x, dest_y]
-    @visited[dest_x][dest_y] = 0
+    @visited[dest_x][dest_y] = true
 
     while queue.length > 0
       x, y = queue.shift
