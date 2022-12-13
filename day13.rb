@@ -20,48 +20,17 @@ class Day13
   end
 
   def two
-    unordered = []
+    count_2 = 0
+    count_6 = 0
+
     @packets.each do |x,y|
-      unordered << x
-      unordered << y
+      count_2 += 1 if order(x, [[2]]) == -1
+      count_2 += 1 if order(y, [[2]]) == -1
+      count_6 += 1 if order(x, [[6]]) == -1
+      count_6 += 1 if order(y, [[6]]) == -1
     end
-    unordered << [[2]]
-    unordered << [[6]]
-    quick_sort(unordered, 0, unordered.length - 1)
-    count = 1
-    unordered.each_with_index do |p, i|
-      count *= i+1 if p == [[2]] || p == [[6]]
-    end
-    count
-  end
 
-  private def quick_sort(packets, start, finish)
-    if start < finish
-      pi = partition(packets, start, finish)
-      quick_sort(packets, start, pi - 1)
-      quick_sort(packets, pi + 1, finish)
-    end
-  end
-
-  private def swap(packets, i, j)
-    temp = packets[i]
-    packets[i] = packets[j]
-    packets[j] = temp
-  end
-
-  private def partition(packets, start, finish)
-    pivot = packets[finish]
-    i = start - 1
-    j = start
-    while j < finish
-      if order(packets[j], pivot) == -1
-        i += 1
-        swap(packets, i, j)
-      end
-      j += 1
-    end
-    swap(packets, i + 1, finish)
-    i + 1
+    (count_2 + 1) * (count_6 + 2)
   end
 
   private def order(left, right)
