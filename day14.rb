@@ -28,38 +28,30 @@ class Day14
 
   private def count_drops
     units = 0
-    loop do
-      if drop_sand
-        break
-      else
-        units += 1
-      end
-    end
-    units
-  end
-
-  private def drop_sand
-    x = 500
-    y = 0
-    stopped = false
-    return true if @cave[y][x] == "o"
-  
-    while !stopped
-      return true if y == @max_y - 1
-      if @cave[y + 1][x] == "."
+    stack = [[500, 0]]
+    abyss = false
+    while !abyss && stack.length > 0
+      x, y = stack.last
+      if y == @max_y - 1
+        abyss = true
+      elsif @cave[y + 1][x] == "."
         y += 1
+        stack << [x, y]
       elsif @cave[y + 1][x - 1] == "."
         y += 1
         x -= 1
+        stack << [x, y]
       elsif @cave[y + 1][x + 1] == "."
         y += 1
         x += 1
+        stack << [x, y]
       else
-        stopped = true
         @cave[y][x] = "o"
+        units += 1
+        stack.pop
       end
     end
-    false
+    units
   end
 
   private def build_cave
