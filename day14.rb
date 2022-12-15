@@ -1,4 +1,3 @@
-
 class Day14
   INPUT = "day14.input"
 
