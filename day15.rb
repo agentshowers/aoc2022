@@ -1,44 +1,65 @@
 class Day15
   INPUT = "day15.input"
-  #LINE = 10
   LINE = 2000000
-  #MAX = 20
   MAX = 4000000
 
   def initialize
-    @range_one = []
-    @beacons_one = []
-    @ranges = Array.new(MAX+1)
-
-    File.readlines(INPUT, chomp: true).each do |line|
+    @sensors = File.readlines(INPUT, chomp: true).map do |line|
       line =~ /Sensor at x=(\-?\d+), y=(\-?\d+): closest beacon is at x=(\-?\d+), y=(\-?\d+)/
-      add_range($1.to_i, $2.to_i, $3.to_i, $4.to_i)
+      [$1.to_i, $2.to_i, $3.to_i, $4.to_i]
     end
   end
 
   def one
-    @range_one.first[1] - @range_one.first[0] + 1 - @beacons_one.uniq.count
+    range = []
+    beacons = []
+    @sensors.each do |s_x, s_y, b_x, b_y|
+      dist = (s_x - b_x).abs + (s_y - b_y).abs
+      next if LINE < s_y - dist || LINE > s_y + dist
+      diff = dist - (s_y - LINE).abs
+      range = merge(range, s_x - diff, s_x + diff, false)
+      beacons << b_x if b_y == LINE
+    end
+    range.first[1] - range.first[0] + 1 - beacons.uniq.count
   end
 
   def two
-    @ranges.each_with_index do |r, i|
-      if r.length > 1
-        x = r[0][1] + 1
-        return (x * 4000000) + i
+    intersect_edges
+    x, y = @intersections.uniq.select do |x, y|
+      @sensors.none? { |s_x, s_y, b_x, b_y| in_range?(s_x, s_y, b_x, b_y, x, y) }
+    end.first
+    x.to_i * 4000000 + y.to_i
+  end
+
+  private def intersect_edges
+    lines = []
+    @intersections = []
+    @sensors.each do |s_x, s_y, b_x, b_y|
+      dist = (s_x - b_x).abs + (s_y - b_y).abs
+      lines << [1, s_y - s_x + dist + 1]
+      lines << [1, s_y - s_x - dist - 1]
+      lines << [-1, s_y + s_x + dist + 1]
+      lines << [-1, s_y + s_x - dist - 1]
+    end
+    i = 0
+    while i < lines.length do
+      j = i + 1
+      while j < lines.length do
+        if lines[i][0] != lines[j][0]
+          x = (1.0 * (lines[j][1] - lines[i][1]))/(lines[i][0] - lines[j][0])
+          y = (1.0 * (lines[i][0]*lines[j][1] - lines[j][0]*lines[i][1]))/(lines[i][0] - lines[j][0])
+          @intersections << [x, y] if x % 1 == 0 && y % 1 == 0 && x >= 0 && x <= MAX && y >= 0 && y <= MAX
+        end
+        j += 1
       end
+      i += 1
     end
   end
 
-  private def add_range(s_x, s_y, b_x, b_y)
-    dist = (s_x - b_x).abs + (s_y - b_y).abs
-    min_y = [s_y-dist, 0].max
-    max_y = [s_y+dist, MAX].min
-    (min_y..max_y).each do |i|
-      diff = dist - (s_y - i).abs
-      @ranges[i] = merge(@ranges[i], s_x - diff, s_x + diff)
-      @range_one = merge(@range_one, s_x - diff, s_x + diff, false) if i == LINE
-      @beacons_one << b_x if b_y == LINE
-    end
+  private def in_range?(s_x, s_y, b_x, b_y, x, y)
+    dist_b = (s_x - b_x).abs + (s_y - b_y).abs
+    dist = (s_x - x).abs + (s_y - y).abs
+    dist_b >= dist
   end
 
   private def merge(range, r_start, r_end, limits=true)
@@ -80,3 +101,4 @@ class Day15
   end
 
 end
+
