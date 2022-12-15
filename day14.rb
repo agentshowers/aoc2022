@@ -4,6 +4,7 @@ class Day14
 
   def initialize
     @max_y = 0
+    @max_x = 1000
     @rocks = File.readlines(INPUT, chomp: true).map do |l|
       raw = l.split(" -> ")
       raw.map do |r|
@@ -12,29 +13,25 @@ class Day14
         [x, y]
       end
     end
-    @max_x = 1000
+    build_cave
+    count_drops
   end
 
   def one
-    build_cave
-    count_drops
+    @abyss
   end
 
   def two
-    build_cave
-    @cave[@max_y-1] = Array.new(@max_x, "#")
-    count_drops
+    @units
   end
 
   private def count_drops
-    units = 0
+    @units = 0
     stack = [[500, 0]]
-    abyss = false
-    while !abyss && stack.length > 0
+    @abyss = nil
+    while stack.length > 0
       x, y = stack.last
-      if y == @max_y - 1
-        abyss = true
-      elsif @cave[y + 1][x] == "."
+      if @cave[y + 1][x] == "."
         y += 1
         stack << [x, y]
       elsif @cave[y + 1][x - 1] == "."
@@ -46,12 +43,13 @@ class Day14
         x += 1
         stack << [x, y]
       else
+        @abyss ||= @units if y == @max_y - 2
         @cave[y][x] = "o"
-        units += 1
+        @units += 1
         stack.pop
       end
     end
-    units
+    @units
   end
 
   private def build_cave
@@ -59,6 +57,7 @@ class Day14
     (0..@max_y-1).each do |y|
       @cave[y] = Array.new(@max_x, ".")
     end
+    @cave[@max_y-1] = Array.new(@max_x, "#")
     @rocks.each do |rock_line|
       i = 1
       while i < rock_line.length
