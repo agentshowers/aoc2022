@@ -20,12 +20,13 @@ class Day15
       merge(range, s_x - diff, s_x + diff)
       beacons << b_x if b_y == LINE
     end
-    
     range.each_slice(2).map { |s| s[1] + 1 - s[0] }.sum - beacons.uniq.count
   end
 
   def two
     x, y = find_intersection
+    # edge case of the beacon being in the corner of the map
+    x, y = [[0,0],[0,MAX],[MAX,0],[MAX,MAX]].find { |i,j| !in_sensors_range?(i, j) } if !x
     x.to_i * 4000000 + y.to_i
   end
 
@@ -42,7 +43,6 @@ class Day15
     positive_slopes.each do |p_slope|
       negative_slopes.each do |n_slope|
         x, y = intersect_slopes(1, -1, p_slope, n_slope)
-        next unless x % 1 == 0 && y % 1 == 0 # not integer
         next unless x >= 0 && x <= MAX && y >= 0 && y <= MAX # not in the area
         return [x, y] if !in_sensors_range?(x, y)
       end
@@ -80,11 +80,15 @@ class Day15
     elsif i == j
       range[i] = i % 2 == 0 ? r_start : r_end
     else
-      range[i] = r_start if i % 2 == 0
-      range[j] = r_end if j % 2 != 0
-      slice_i = i % 2 == 0 ? i + 1 : i
-      slice_j = j % 2 != 0 ? j - 1 : j
-      range.slice!(slice_i..slice_j)
+      if i % 2 == 0
+        range[i] = r_start 
+        i += 1
+      end
+      if j % 2 != 0
+        range[j] = r_end
+        j -= 1
+      end
+      range.slice!(i..j)
     end
   end
 
