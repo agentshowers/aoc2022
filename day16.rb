@@ -14,11 +14,76 @@ class Day16
   end
 
   def one
-    best_move("AA", 30, good_valves.keys, {})
+    # flow, _ = best_move("AA", 30, good_valves.keys, {})
+    # flow
+    solve
   end
 
   def two
-    best_move2("AA", 26, "AA", 26, good_valves.keys, {}, true)
+    bound("AA", 30, good_valves.keys)
+    # elephant = "AA"
+    # me = "AA"
+    # mins_left_elephant = 26
+    # mins_left_me = 26
+    # unopened = good_valves.keys
+    # total_flow = 0
+    # loop do
+    #   if mins_left_elephant >= mins_left_me
+    #     elephant, mins_left_elephant, flow = move(elephant, mins_left_elephant, unopened)
+    #     puts "Moved elephant to #{elephant} (#{mins_left_elephant} left)"
+    #   else
+    #     me, mins_left_me, flow = move(me, mins_left_me, unopened)
+    #     puts "Moved me to #{me} (#{mins_left_me} left)"
+    #   end
+    #   total_flow += flow
+    #   break if mins_left_elephant == 0 && mins_left_me == 0
+    # end
+    # total_flow
+  end
+
+  private def solve
+    global_max = 0
+    candidates = [["AA", 30, good_valves.keys, 0]]
+    while candidates.length > 0
+      valve, minutes_left, unopened, curr_flow = candidates.shift
+      unopened.each do |v|
+        dist = @map[valve][v]
+        potential_max = bound(v, minutes_left - dist - 1, unopened - [v])
+        if curr_flow + potential_max > global_max
+          local_flow = @valves[v][0] * (minutes_left - dist - 1)
+          candidates << [v, minutes_left - dist - 1, unopened - [v], curr_flow + local_flow]
+        end
+      end
+    end
+    global_max
+  end
+
+  private def bound(location, minutes_left, unopened)
+    return 0 if minutes_left < 2
+    min_dist = unopened.map { |v| @map[v].map { |x| x[1] }.min }.min
+    max_flow = unopened.map { |v| @valves[v][0] }.max
+
+    flow = @valves[location][0] * (minutes_left - 1)
+    loop do
+      minutes_left -= min_dist + 1
+      break if minutes_left <= 0
+      flow += max_flow * minutes_left
+    end
+    flow
+  end
+
+  private def move(location, minutes_left, unopened)
+    _, path = best_move(location, minutes_left, unopened, {})
+    if path.length > 0
+      minutes_left = minutes_left - @map[location][path.first] - 1
+      location = path.first
+      flow = @valves[location][0] * minutes_left
+      unopened.delete(location)
+    else
+      minutes_left = 0
+      flow = 0
+    end
+    [location, minutes_left, flow]
   end
 
   private def build_map(valve)
@@ -50,12 +115,18 @@ class Day16
     unopened.each do |v|
       dist = @map[valve][v]
       flow = @valves[v][0] * (minutes_left - dist - 1)
-      total_flow = flow > 0 ? flow + best_move(v, minutes_left - dist - 1, unopened - [v], memo) : 0
-      max_flow = [max_flow, total_flow].max
+      if flow > 0
+        f, p = best_move(v, minutes_left - dist - 1, unopened - [v], memo)
+        total_flow = flow + f
+        if total_flow > max_flow
+          max_flow = total_flow
+          path = [v] + p
+        end
+      end
     end
-    
-    memo[key] = max_flow
-    max_flow
+
+    memo[key] = [max_flow, path]
+    [max_flow, path]
   end
 
   private def best_move2(valve_e, minutes_left_e, valve_m, minutes_left_m, unopened, memo)
@@ -77,22 +148,6 @@ class Day16
     
     memo[key] = max_flow
     max_flow
-  end
-
-  private def greedy(valve, minutes_left, unopened)
-    max_flow = 0
-    next_valve = nil
-    left = 0
-    unopened.each do |v|
-      dist = @map[valve][v]
-      flow = @valves[v][0] * (minutes_left - dist - 1)
-      if flow > max_flow
-        max_flow = flow
-        next_valve = v
-        left = minutes_left - dist - 1
-      end
-    end
-    [next_valve, max_flow, left]
   end
 
   private def good_valves
