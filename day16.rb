@@ -48,9 +48,8 @@ class Day16
     good_valves.keys.each_with_index do |v, i|
       next if unopened & (2.pow(i)) > 0
       next unless can_move?(valve, v, minutes_left)
-      dist = @map[valve][v]
-      flow = @valves[v][0] * (minutes_left - dist - 1)
-      total_flow = flow + solve_single(v, minutes_left - dist - 1, unopened | 2.pow(i), memo)
+      flow, new_mins_left = move(valve, v, minutes_left)
+      total_flow = flow + solve_single(v, new_mins_left, unopened | 2.pow(i), memo)
       max_flow = [max_flow, total_flow].max
     end
 
@@ -62,8 +61,10 @@ class Day16
     minutes_left - @map[valve][dest] - 1 >= 2
   end
 
-  private def left_after_move(valve, dest, minutes_left)
-    minutes_left - @map[valve][dest] - 1
+  private def move(valve, dest, minutes_left)
+    minutes_left -= @map[valve][dest] + 1
+    flow = @valves[dest][0] * minutes_left
+    [flow, minutes_left]
   end
 
   private def build_single_key(valve, minutes_left, unopened)
@@ -74,7 +75,7 @@ class Day16
   def two
     # Answer 2772
     # Example 1707
-   # solve_double("AA", 26, "AA", 26, 0, {}, true)
+    solve_double("AA", 26, "AA", 26, 0, {}, true)
     #bound("AA", 30, good_valves.keys)
     # elephant = "AA"
     # me = "AA"
@@ -96,49 +97,62 @@ class Day16
     # total_flow
   end
 
-  # private def solve_double(valve_me, minutes_left_me, valve_el, minutes_left_el, unopened, memo, log = false)
-  #   key = build_double_key(valve_me, minutes_left_me, valve_el, minutes_left_el, unopened)
-  #   return memo[key] if memo[key]
+  private def solve_double(me, mins_me, elephant, mins_elephant, unopened, memo, log = false)
+    key = build_double_key(me, mins_me, elephant, mins_elephant, unopened)
+    return memo[key] if memo[key]
   
-  #   max_flow = 0
-  #   good_valves.keys.each_with_index do |vi, i|
-  #     next if unopened & (2.pow(i)) > 0
-  #     next if minutes_left_el - @map[valve_el][vi] - 1 < 2 && minutes_left_me - @map[valve_me][vi] - 1 < 2
-  #     subpaths = 0
-  #     j = i + 1
-  #     while j < good_valves.keys.length
-  #       next if unopened & (2.pow(j)) > 0
-  #       vj = good_valves.keys[vj]
+    max_flow = 0
+    good_valves.keys.each_with_index do |vi, i|
+      puts "Solving #{vi}" if log
+      next if unopened & (2.pow(i)) > 0
+      move_me_i = can_move?(me, vi, mins_me)
+      move_el_i = can_move?(elephant, vi, mins_elephant)
+      next if !move_el_i && !move_me_i
 
+      el_moved = false
+      me_moved = false
+      j = i + 1
+      while j < good_valves.keys.length
+        next if unopened & (2.pow(j)) > 0
+        vj = good_valves.keys[j]
+        move_me_j = can_move?(me, vj, mins_me)
+        move_el_j = can_move?(elephant, vj, mins_elephant)
+        next if !move_el_j && !move_me_j
+        if move_el_i && move_me_j
+          flow_el, ml_el = move(elephant, vi, mins_elephant)
+          flow_me, ml_me = move(me, vj, mins_me)
+          total_flow = flow_me + flow_el
+          total_flow += solve_double(vj, ml_me, vi, ml_el, unopened | 2.pow(i) | 2.pow(j), memo)
+          max_flow = [max_flow, total_flow].max
+          el_moved = true
+        end
+        if move_el_j && move_me_i
+          if me != elephant
+            flow_el, ml_el = move(elephant, vj, mins_elephant)
+            flow_me, ml_me = move(me, vi, mins_me)
+            total_flow = flow_me + flow_el
+            total_flow += solve_double(vi, ml_me, vj, ml_el, unopened | 2.pow(i) | 2.pow(j), memo)
+            max_flow = [max_flow, total_flow].max
+          end
+          me_moved = true
+        end
+        j += 1
+      end
+      if !el_moved && move_el_i
+        flow_el, ml_el = move(elephant, vi, mins_elephant)
+        total_flow = flow_el + solve_double(me, mins_me, vi, ml_el, unopened | 2.pow(i), memo)
+        max_flow = [max_flow, total_flow].max
+      end
+      if !me_moved && move_me_i
+        flow_me, ml_me = move(me, vi, mins_me)
+        total_flow += flow_me + solve_double(vi, ml_me, elephant, mins_elephant, unopened | 2.pow(i), memo)
+        max_flow = [max_flow, total_flow].max
+      end
+    end
 
-  #       flow_i = @valves[vi][0] * (minutes_left_el - dist - 1)
-  #       if flow > 0
-  #         total_flow = flow + solve_double(valve_me, minutes_left_me, v, minutes_left_el - dist - 1, unopened | 2.pow(i), memo)
-  #         max_flow = [max_flow, total_flow].max
-  #       end
-
-  #   good_valves.keys.each_with_index do |v, i|
-  #     next if unopened & (2.pow(i)) > 0
-
-  #     puts "Solving #{v}" if log
-  #     dist = @map[valve_el][v]
-  #     flow = @valves[v][0] * (minutes_left_el - dist - 1)
-  #     if flow > 0
-  #       total_flow = flow + solve_double(valve_me, minutes_left_me, v, minutes_left_el - dist - 1, unopened | 2.pow(i), memo)
-  #       max_flow = [max_flow, total_flow].max
-  #     end
-
-  #     dist = @map[valve_me][v]
-  #     flow = @valves[v][0] * (minutes_left_me - dist - 1)
-  #     if flow > 0
-  #       total_flow = flow + solve_double(v, minutes_left_me - dist - 1, valve_el, minutes_left_el, unopened | 2.pow(i), memo)
-  #       max_flow = [max_flow, total_flow].max
-  #     end
-  #   end
-
-  #   memo[key] = max_flow
-  #   max_flow
-  # end
+    memo[key] = max_flow
+    max_flow
+  end
 
   private def build_double_key(v_me, ml_me, v_el, ml_el, unopened)
     key = unopened*100000000 + ml_me*1000000 + ml_el*10000
