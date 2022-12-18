@@ -16,11 +16,12 @@ class Day16
   def one
     # flow, _ = best_move("AA", 30, good_valves.keys, {})
     # flow
-    solve
+    1
   end
 
   def two
-    bound("AA", 30, good_valves.keys)
+    2
+    #bound("AA", 30, good_valves.keys)
     # elephant = "AA"
     # me = "AA"
     # mins_left_elephant = 26
