@@ -1,68 +1,43 @@
 class Day20
   INPUT = "day20.input"
 
+  def initialize
+    @zero = nil
+    @code = File.read(INPUT).split("\n").map do |x|
+      node = Node.new(x.to_i)
+      @zero = node if x.to_i == 0
+      node
+    end
+  end
+
   def one
-    @map = build_map
     solve(1, 1)
   end
 
   def two
-    @map = build_map
     solve(10, 811589153)
   end
 
-  private def build_map
-    map = []
-    prev = nil
-    File.readlines(INPUT, chomp: true).each do |line|
-      node = Node.new(line.to_i)
-      node.prev = prev
-      prev.next = node if prev
-      prev = node
-      map << node
-    end
-    map.last.next = map.first
-    map.first.prev = map.last
-    map
-  end
-
   private def solve(n, key)
-    zero_idx = nil
+    size = @code.length
+    list = @code.dup
     (1..n).each do
-      @map.each_with_index do |node, i|
-        move_count = (node.x * key).abs % (@map.length - 1)
-        if node.x == 0
-          zero_idx = i
-        else
-          curr = node.next
-          prev = node.prev
-          prev.next = curr
-          curr.prev = prev
-          (1..move_count).each do
-            curr = node.x > 0 ? curr.next : curr.prev
-          end
-          curr.prev.next = node
-          node.prev = curr.prev
-          node.next = curr
-          curr.prev = node
-        end
+      @code.each do |node|
+        idx = list.index(node)
+        move_count = (node.x * key) % (size - 1)
+        new_idx = (idx + move_count) % (size - 1)
+        list.delete_at(idx)
+        list.insert(new_idx, node)
       end
     end
-    sum = 0
-    i = 0
-    node = @map[zero_idx]
-    while i <= 3000
-      sum += node.x * key if [1000, 2000, 3000].include?(i)
-      node = node.next
-      i += 1
-    end
-    sum
+    zero_idx = list.index(@zero)
+    sum = list[(zero_idx + 1000) % size].x + list[(zero_idx + 2000) % size].x + list[(zero_idx + 3000) % size].x
+    sum * key
   end
-
 end
 
 class Node
-  attr_accessor :x, :next, :prev
+  attr_reader :x
 
   def initialize(x)
     @x = x
