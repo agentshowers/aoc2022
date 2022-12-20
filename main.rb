@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-DAYS = 19
+DAYS = 20
 
 total_time = 0
 

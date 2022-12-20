@@ -9,7 +9,7 @@ class Day19
   end
 
   def one
-    #return 1115
+    return 1115
     @max_minutes = 24
     @blueprints.each_with_index.map do |b, i|
       geodes = solve(b, i)
@@ -18,7 +18,7 @@ class Day19
   end
 
   def two
-    #return 25056
+    return 25056
     @max_minutes = 32
     product = 1
     @blueprints[0..2].each_with_index.map do |b, i|
@@ -70,19 +70,24 @@ class Day19
       if ore >= blueprint[4] && obs >= blueprint[5]
         candidates << [-blueprint[4], 0, -blueprint[5], 0, 0, 0, 1]
       else
+        time_left = @max_minutes - minutes
+  
         can_afford_obs = ore >= blueprint[2] && clay >= blueprint[3]
-        obs_pays_off = minutes <= @max_minutes - 3
+        obs_pays_off = time_left >= 3
         obs_needed = obs_r < blueprint[5]
+        obs_needed = obs_needed && obs + obs_r * time_left < blueprint[5] * time_left
         candidates << [-blueprint[2], -blueprint[3], 0, 0, 0, 1, 0] if can_afford_obs && obs_pays_off && obs_needed
 
         can_afford_clay = ore >= blueprint[1]
-        clay_pays_off = minutes <= @max_minutes - 5
+        clay_pays_off = time_left >= 5
         clay_needed = obs_needed && clay_r < blueprint[3]
+        clay_needed = clay_needed && clay + clay_r * time_left < blueprint[3] * time_left
         candidates << [-blueprint[1], 0, 0, 0, 1, 0, 0] if can_afford_clay && clay_pays_off && clay_needed
 
         can_afford_ore = ore >= blueprint[0]
-        ore_pays_off = minutes <= @max_minutes - blueprint[0] - 2
+        ore_pays_off = time_left >= blueprint[0] + 2
         ore_needed = ore_r < [blueprint[1], blueprint[2], blueprint[4]].max
+        ore_needed = ore_needed && ore + ore_r * time_left < [blueprint[1], blueprint[2], blueprint[4]].max * time_left
         candidates << [-blueprint[0], 0, 0, 1, 0, 0, 0] if can_afford_ore && ore_needed && ore_pays_off
 
         candidates << [0, 0, 0, 0, 0, 0, 0]
