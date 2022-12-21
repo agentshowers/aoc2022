@@ -9,8 +9,9 @@ class Day16
     end
     @memo = {}
     @map = {}
+    @good_valves = @valves.select { |k, v| v[0] > 0 }
+    @good_valves.keys.each { |v| build_map(v) }
     build_map("AA")
-    good_valves.keys.each { |v| build_map(v) }
   end
 
   def one
@@ -48,19 +49,18 @@ class Day16
     end
   end
 
-  private def good_valves
-    @good_valves ||= @valves.select { |k, v| v[0] > 0 }
-  end
-
   private def solve(valve, minutes_left, unopened)
-    key = build_key(valve, minutes_left, unopened)
+    base = unopened*10000 + minutes_left*100
+    key = base + (valve == "AA" ? @good_valves.keys.length : @good_valves.keys.index(valve))
     return @memo[key] if @memo[key]
   
     max_flow = 0
-    good_valves.keys.each_with_index do |v, i|
+    @good_valves.keys.each_with_index do |v, i|
       next if unopened & (2.pow(i)) > 0
-      next unless can_move?(valve, v, minutes_left)
-      flow, new_mins_left = move(valve, v, minutes_left)
+      next unless minutes_left - @map[valve][v] - 1 >= 2
+     
+      new_mins_left = minutes_left - @map[valve][v] - 1
+      flow = @valves[v][0] * new_mins_left
       total_flow = flow + solve(v, new_mins_left, unopened | 2.pow(i))
       max_flow = [max_flow, total_flow].max
     end
@@ -68,22 +68,6 @@ class Day16
     @memo[key] = max_flow
     max_flow
   end
-
-  private def can_move?(valve, dest, minutes_left)
-    minutes_left - @map[valve][dest] - 1 >= 2
-  end
-
-  private def move(valve, dest, minutes_left)
-    minutes_left -= @map[valve][dest] + 1
-    flow = @valves[dest][0] * minutes_left
-    [flow, minutes_left]
-  end
-
-  private def build_key(valve, minutes_left, unopened)
-    base = unopened*10000 + minutes_left*100
-    base + (valve == "AA" ? good_valves.keys.length : good_valves.keys.index(valve))
-  end
-
 
   private def generate_splits(idx, opened)
     len = @good_valves.keys.length
