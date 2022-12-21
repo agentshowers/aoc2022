@@ -4,7 +4,10 @@ class Day19
   def initialize
     @blueprints = File.readlines(INPUT, chomp: true).map do |line|
       line =~ /Blueprint \d+\: Each ore robot costs (\d+) ore\. Each clay robot costs (\d+) ore\. Each obsidian robot costs (\d+) ore and (\d+) clay\. Each geode robot costs (\d+) ore and (\d+) obsidian\./
-      [$1.to_i, $2.to_i, $3.to_i, $4.to_i, $5.to_i, $6.to_i]
+      [[$1.to_i, 0, 0, 0],
+      [$2.to_i, 0, 0, 0],
+      [$3.to_i, $4.to_i, 0, 0],
+      [$5.to_i, 0, $6.to_i, 0]]
     end
   end
 
@@ -12,7 +15,9 @@ class Day19
     #return 1115
     @max_minutes = 24
     @blueprints.each_with_index.map do |b, i|
-      geodes = solve(b, i)
+      #puts "solving #{i}"
+      geodes = solve(b)
+      #puts "got #{geodes}"
       geodes * (i+1)
     end.sum
   end
@@ -22,32 +27,31 @@ class Day19
     @max_minutes = 32
     product = 1
     @blueprints[0..2].each_with_index.map do |b, i|
-      product *= solve(b, i)
+      #puts "solving #{i}"
+      geodes = solve(b)
+      #puts "got #{geodes}"
+      product *= geodes
     end.sum
     product
   end
 
-  private def solve(blueprint, idx)
-    init_key = build_key(0,0,0,1,0,0,0,1)
+  private def solve(blueprint)
+    init_key = build_key(1,0,0,0,1,0,0,0)
     queue = [init_key]
     acc = { init_key => 0 }
     max_g = 0
-    global_floor = 0
-    #puts "Solving #{idx}"
+    @global_floor = 0
     while queue.length > 0
       key = queue.shift
       geode = acc[key]
-      ore, clay, obs, ore_r, clay_r, obs_r, geode_r, minutes = read_key(key)
-      minutes_left = @max_minutes - minutes + 1
-      ceiling = geode + geode_r*minutes_left + ((minutes_left)*(minutes_left+1))/2
-      if ceiling >= global_floor
+      minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = read_key(key)
+      if ceiling(geode, geode_r, minutes) >= @global_floor
         candidates(ore, clay, obs, geode, ore_r, clay_r, obs_r, geode_r, blueprint, minutes).each do |o,c,ob,g,o_r,c_r,ob_r,g_r,mins|
           if mins > @max_minutes
             max_g = [g, max_g].max
           else
-            key = build_key(o,c,ob,o_r,c_r,ob_r,g_r,mins)
-            floor = g + g_r * (@max_minutes - mins + 1)
-            global_floor = [global_floor, floor].max
+            key = build_key(mins,o,c,ob,o_r,c_r,ob_r,g_r)
+            @global_floor = [@global_floor, floor(g, g_r, mins)].max
             if acc[key]
               acc[key] = [g, acc[key]].max
             else
@@ -58,7 +62,6 @@ class Day19
         end
       end
     end
-    #puts "got #{max_g}"
     max_g
   end
 
@@ -66,54 +69,28 @@ class Day19
     resources = [ore, clay, obs, geode]
     robots = [ore_r, clay_r, obs_r, geode_r]
     candidates = []
-    #puts "at #{minutes} minutes robots: #{robots.to_s} resources: #{resources.to_s}"
     if minutes == @max_minutes
       candidates << [0, 0, 0, 0, 0, 0, 0, 0, 0]
     else
-      costs = [blueprint[4], 0, blueprint[5], 0]
-      mins_to_build = time_to_build(costs, robots, resources)
-      if mins_to_build > -1 && minutes + mins_to_build < @max_minutes
-        candidates << build_robot(costs, robots, resources, mins_to_build) + [0, 0, 0, 1, mins_to_build]
-        #puts "Building Geode in #{mins_to_build}"
-      end
+      time_left = @max_minutes - minutes
 
-      if mins_to_build.abs > 0
-        time_left = @max_minutes - minutes
-  
-        obs_pays_off = time_left >= 3
-        obs_needed = obs_r < blueprint[5]
-        obs_needed = obs_needed && obs + obs_r * time_left < blueprint[5] * time_left
-        if obs_pays_off && obs_needed
-          costs = [blueprint[2], blueprint[3], 0, 0]
-          mins_to_build = time_to_build(costs, robots, resources)
-          if mins_to_build > -1 && minutes + mins_to_build < @max_minutes
-            candidates << build_robot(costs, robots, resources, mins_to_build) + [0, 0, 1, 0, mins_to_build]
-            #puts "Building Obsidian in #{mins_to_build}"
-          end
-        end
+      costs = blueprint[3]
+      has_time, build_time = can_build_robot?(blueprint, robots, resources, 3, time_left)
+      candidates << build_robot(costs, robots, resources, build_time) + [0, 0, 0, 1, build_time] if has_time
 
-        clay_pays_off = time_left >= 5
-        clay_needed = obs_needed && clay_r < blueprint[3]
-        clay_needed = clay_needed && clay + clay_r * time_left < blueprint[3] * time_left
-        if clay_pays_off && clay_needed
-          costs = [blueprint[1], 0, 0, 0]
-          mins_to_build = time_to_build(costs, robots, resources)
-          if mins_to_build > -1 && minutes + mins_to_build < @max_minutes
-            candidates << build_robot(costs, robots, resources, mins_to_build) + [0, 1, 0, 0, mins_to_build]
-            #puts "Building Clay in #{mins_to_build}"
-          end
-        end
+      if build_time.abs > 0
+        obs_needed = robot_needed?(blueprint, robots, resources, 2, time_left)
+        has_time, build_time = can_build_robot?(blueprint, robots, resources, 2, time_left)
+        candidates << build_robot(blueprint[2], robots, resources, build_time) + [0, 0, 1, 0, build_time] if obs_needed && has_time
 
-        ore_pays_off = time_left >= blueprint[0] + 2
-        ore_needed = ore_r < [blueprint[1], blueprint[2], blueprint[4]].max
-        ore_needed = ore_needed && ore + ore_r * time_left < [blueprint[1], blueprint[2], blueprint[4]].max * time_left
-        if ore_needed && ore_pays_off
-          costs = [blueprint[0], 0, 0, 0]
-          mins_to_build = time_to_build(costs, robots, resources)
-          if mins_to_build > -1 && minutes + mins_to_build < @max_minutes
-            candidates << build_robot(costs, robots, resources, mins_to_build) + [1, 0, 0, 0, mins_to_build]
-            #puts "Building Ore in #{mins_to_build}"
-          end
+        clay_needed = obs_needed && robot_needed?(blueprint, robots, resources, 1, time_left)
+        has_time, build_time = can_build_robot?(blueprint, robots, resources, 1, time_left)
+        candidates << build_robot(blueprint[1], robots, resources, build_time) + [0, 1, 0, 0, build_time] if clay_needed && has_time
+
+        if time_left >= blueprint[0][0] + 2
+          ore_needed = robot_needed?(blueprint, robots, resources, 0, time_left)
+          has_time, build_time = can_build_robot?(blueprint, robots, resources, 0, time_left)
+          candidates << build_robot(blueprint[0], robots, resources, build_time) + [1, 0, 0, 0, build_time] if ore_needed && has_time
         end
 
         candidates << [0, 0, 0, 0, 0, 0, 0, 0, 0] if candidates.length == 0
@@ -124,12 +101,26 @@ class Day19
     end
   end
 
+  private def robot_needed?(blueprint, robots, resources, idx, time_left)
+    pays_off = time_left >= (blueprint[3][idx] > 0 ? 3 : 5)
+    max_cost = blueprint.map { |b| b[idx] }.max
+    not_enough_robots = robots[idx] < max_cost
+    not_enough_resources = resources[idx] + robots[idx] * time_left < max_cost * time_left
+    
+    pays_off && not_enough_robots && not_enough_resources
+  end
+
+  private def can_build_robot?(blueprint, robots, resources, idx, time_left)
+    mins_to_build = time_to_build(blueprint[idx], robots, resources)
+    built_in_time = mins_to_build > -1 && mins_to_build < time_left
+    [built_in_time, mins_to_build]
+  end
+
   private def build_robot(costs, robots, resources, minutes_to_build)
     (0..3).map do |i|
       robots[i]*minutes_to_build - costs[i]
     end
   end
-
 
   private def time_to_build(costs, robots, resources)
     return -1 unless (0..3).none? { |i| robots[i] == 0 && costs[i] > 0 }
@@ -141,6 +132,16 @@ class Day19
         (1.0 * [(costs[i] - resources[i]), 0].max / robots[i]).ceil
       end
     end.max
+  end
+
+  private def floor(geode, geode_r, minutes)
+    minutes_left = @max_minutes - minutes + 1
+    geode + geode_r * minutes_left
+  end
+  
+  private def ceiling(geode, geode_r, minutes)
+    minutes_left = @max_minutes - minutes + 1
+    geode + geode_r*minutes_left + ((minutes_left)*(minutes_left+1))/2
   end
 
   private def build_key(*args)
