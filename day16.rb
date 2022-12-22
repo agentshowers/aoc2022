@@ -18,14 +18,15 @@ class Day16
     # return 1915
     @memo = {}
     @global_best = 0
-    @full_solve = false
     solve("AA", 30, 0, 0)  
     @global_best
   end
 
   def two
     #return 2772
-    @full_solve = true
+    @memo = {}
+    @global_best = 0
+    @save_best = true
     @best_per_set = {}
     solve("AA", 26, 0, 0)
     sorted = @best_per_set.sort_by { |_, v| -v }
@@ -54,32 +55,34 @@ class Day16
   end
 
   private def solve(valve, minutes_left, unopened, current_flow)
-    unless @full_solve
-      base = unopened*10000 + minutes_left*100
-      key = base + (valve == "AA" ? @useful_valves.keys.length : @useful_valves.keys.index(valve))
-      return @memo[key] if @memo[key]
-    end
-    max_flow = 0
+    base = unopened*10000 + minutes_left*100
+    key = base + (valve == "AA" ? @useful_valves.keys.length : @useful_valves.keys.index(valve))
+    return @memo[key] if @memo[key]
 
+    max_flow = 0
+    best_set = 0
     if @full_solve || ceiling(valve, minutes_left, unopened, current_flow) >= @global_best
       @useful_valves.keys.each_with_index do |v, i|
         next if unopened & (2.pow(i)) > 0
         if minutes_left - @map[valve][v] - 1 >= 2
           new_mins_left = minutes_left - @map[valve][v] - 1
           flow = @valves[v][0] * new_mins_left
-          total_flow = flow + solve(v, new_mins_left, unopened | 2.pow(i), current_flow + flow)
-          max_flow = [max_flow, total_flow].max
-        elsif @full_solve
+          f, u = solve(v, new_mins_left, unopened | 2.pow(i), current_flow + flow)
+          total_flow = flow + f 
+          if total_flow > max_flow
+            max_flow = total_flow
+            best_set = u | 2.pow(i)
+          end
+          @best_per_set[u] = [(@best_per_set[u] || 0), total_flow].max if @save_best
+        elsif @save_best
           @best_per_set[unopened] = [(@best_per_set[unopened] || 0), current_flow].max
         end
       end
     end
 
-    unless @full_solve
-      @global_best = [max_flow, @global_best].max
-      @memo[key] = max_flow
-    end
-    max_flow
+    @global_best = [max_flow, @global_best].max
+    @memo[key] = [max_flow, best_set]
+    [max_flow, best_set]
   end
 
   private def ceiling(valve, minutes_left, unopened, current_flow)
