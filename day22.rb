@@ -7,7 +7,7 @@ class Day22
     max_y = lines.length
     max_x = lines.map { |l| l.length }.max
     lines.map! { |line| line.ljust(max_x, " ") }
-    square_size = (max_y-max_x).abs == 1 ? [max_x, max_y].max / 4 : [max_x, max_y].max / 5
+    square_size = [max_x, max_y].max / 4
     @squares = []
     (0..(max_y / square_size) - 1).each do |y|
       (0..(max_x / square_size) - 1).each do |x|
@@ -50,7 +50,7 @@ class Day22
   end
 
   private def folded_adjacencies
-    # TODO: become smart enough to write a cube folding algorithm
+    # TODO: become smart enough to write a folding cube algorithm
 
     @squares[0].right = [@squares[1], "R"]
     @squares[0].down = [@squares[2], "D"]
