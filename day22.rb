@@ -1,6 +1,118 @@
 class Day22
   INPUT = "day22.input"
 
+  def initialize
+    m, inst = File.read(INPUT).split("\n\n")
+    lines = m.split("\n")
+    max_y = lines.length
+    max_x = lines.map { |l| l.length }.max
+    lines.map! { |line| line.ljust(max_x, " ") }
+    cube_size = [max_x, max_y].max / 4
+    @cubes = []
+    (0..(max_y / cube_size) - 1).each do |y|
+      (0..(max_x / cube_size) - 1).each do |x|
+        j = y * cube_size
+        i = x  * cube_size
+        if lines[j][i] != " "
+          map = lines[j..(j+cube_size-1)].map { |l| l[i..(i+cube_size-1)] }
+          cube = Cube.new(cube_size, y, x, map)
+          @cubes << cube
+        end
+      end
+    end
+    @instructions = inst.split(/[RL]/).map(&:to_i).zip(inst.strip.split(/\d+/)[1..])
+  end
+
+  def one
+    unfolded_adjacencies
+    solve
+  end
+
+  def two
+    folded_adjacencies
+    solve
+  end
+
+  private def unfolded_adjacencies
+    @cubes.each do |cube|
+      left_cube = @cubes.find { |c| c.grid_y == cube.grid_y && c.grid_x == cube.grid_x - 1} || @cubes.select { |c| c.grid_y == cube.grid_y }.last
+      cube.left = [left_cube, "L"]
+      
+      right_cube = @cubes.find { |c| c.grid_y == cube.grid_y && c.grid_x == cube.grid_x + 1} || @cubes.select { |c| c.grid_y == cube.grid_y }.first
+      cube.right = [right_cube, "R"]
+
+      up_cube = @cubes.find { |c| c.grid_y == cube.grid_y - 1 && c.grid_x == cube.grid_x } || @cubes.select { |c| c.grid_x == cube.grid_x }.last
+      cube.up = [up_cube, "U"]
+
+      down_cube = @cubes.find { |c| c.grid_y == cube.grid_y + 1 && c.grid_x == cube.grid_x } || @cubes.select { |c| c.grid_x == cube.grid_x }.first
+      cube.down = [down_cube, "D"]
+    end
+  end
+
+  private def folded_adjacencies
+    # TODO: become smart enough to write a folding cube algorithm
+
+    @cubes[0].right = [@cubes[1], "R"]
+    @cubes[0].down = [@cubes[2], "D"]
+    @cubes[0].left = [@cubes[3], "R"]
+    @cubes[0].up = [@cubes[5], "R"]
+
+    @cubes[1].right = [@cubes[4], "L"]
+    @cubes[1].down = [@cubes[2], "L"]
+    @cubes[1].left = [@cubes[0], "L"]
+    @cubes[1].up = [@cubes[5], "U"]
+
+    @cubes[2].right = [@cubes[1], "U"]
+    @cubes[2].down = [@cubes[4], "D"]
+    @cubes[2].left = [@cubes[3], "D"]
+    @cubes[2].up = [@cubes[0], "U"]
+
+    @cubes[3].right = [@cubes[4], "R"]
+    @cubes[3].down = [@cubes[5], "D"]
+    @cubes[3].left = [@cubes[0], "R"]
+    @cubes[3].up = [@cubes[2], "R"]
+
+    @cubes[4].right = [@cubes[1], "L"]
+    @cubes[4].down = [@cubes[5], "L"]
+    @cubes[4].left = [@cubes[3], "L"]
+    @cubes[4].up = [@cubes[2], "U"]
+
+    @cubes[5].right = [@cubes[4], "U"]
+    @cubes[5].down = [@cubes[1], "D"]
+    @cubes[5].left = [@cubes[0], "D"]
+    @cubes[5].up = [@cubes[3], "U"]
+  end
+
+  private def solve
+    x = 0
+    y = 0
+    cube = @cubes.first
+    direction = "R"
+    @instructions.each do |steps, rotation|
+      (1..steps).each do
+        new_cube, new_y, new_x, new_dir = cube.move(direction, y, x)
+        break if new_cube.wall?(new_y, new_x)
+        cube, y, x, direction = [new_cube, new_y, new_x, new_dir]
+      end
+      direction = rotate(direction, rotation)
+    end
+
+    cube.password(y, x, direction)
+  end
+
+  private def rotate(direction, rotation)
+    idx = Cube::DIRECTIONS.keys.index(direction)
+    idx = (idx + 1) % 4 if rotation == "R"
+    idx = (idx - 1) % 4 if rotation == "L"
+    Cube::DIRECTIONS.keys[idx]
+  end
+
+end
+
+class Cube
+  attr_reader :size, :grid_y, :grid_x
+  attr_accessor :left, :right, :up, :down
+
   DIRECTIONS = {
     "R" => [0, 1],
     "D" => [1, 0],
@@ -8,205 +120,58 @@ class Day22
     "U" => [-1, 0]
   } 
 
-  def initialize
-    m, i = File.read(INPUT).split("\n\n")
-    lines = m.split("\n")
-    @max_y = lines.length
-    @max_x = lines.map { |l| l.length }.max
-    @map = Array.new(@max_y)
-    lines.each_with_index do |line, idx|
-      @map[idx] = line.ljust(@max_x, " ").chars
-    end
-    @instructions = i.split(/[RL]/).map(&:to_i).zip(i.strip.split(/\d+/)[1..])
+  def initialize(size, grid_y, grid_x, map)
+    @size = size
+    @grid_y = grid_y
+    @grid_x = grid_x
+    @map = map
   end
 
-  def one
-    run do |y, x, direction|
-      unfolded(y, x, direction)
-    end
-  end
-
-  def two
-    run do |y, x, direction|
-      folded(y, x, direction)
-    end
-  end
-
-  private def run
-    x = @map[0].index { |p| p != " " }
-    y = 0
-    direction = "R"
-    @instructions.each do |steps, rotation|
-      i = 0
-      while i < steps do
-        ny, nx, dir = yield(y, x, direction)
-
-        break if @map[ny][nx] == "#"
-        y = ny
-        x = nx
-        direction = dir
-        i += 1
-      end
-      direction = rotate(direction, rotation)
-    end
-
-    (1000 * (y + 1)) + (4 * (x + 1)) + DIRECTIONS.keys.index(direction)
-  end
-
-  private def rotate(direction, rotation)
-    idx = DIRECTIONS.keys.index(direction)
-    idx = (idx + 1) % 4 if rotation == "R"
-    idx = (idx - 1) % 4 if rotation == "L"
-    DIRECTIONS.keys[idx]
-  end
-
-  private def unfolded(y, x, direction)
+  def move(direction, j, i)
     dy, dx = DIRECTIONS[direction]
-    if dy.abs > 0
-      if y + dy == @max_y || y + dy == -1 || @map[y + dy][x] == " "
-        y = dy > 0 ? 0 : @max_y - 1
-        while @map[y][x] == " " do
-          y += dy
-        end
-      else
-        y += dy
-      end
+    if j + dy >= 0 && j + dy < size && i + dx >= 0 && i + dx < size
+      new_y = j + dy
+      new_x = i + dx
+      cube = self
+      new_dir = direction
     else
-      if x + dx == @max_x || x + dx == -1 || @map[y][x + dx] == " " 
-        x = dx > 0 ? 0 : @max_x - 1
-        while @map[y][x] == " " do
-          x += dx
-        end
-      else
-        x += dx
-      end
-    end
-    
-    [y, x, direction]
-  end
-
-  private def folded(y, x, direction)
-    case direction
-    when "D"
-      fold_down(y, x)
-    when "U"
-      fold_up(y, x)
-    when "R"
-      fold_right(y, x)
-    when "L"
-      fold_left(y, x)
-    end
-  end
-
-  private def fold_down(y, x)
-    side = @max_y / 4
-    direction = "D"
-
-    if y == @max_y - 1 # Moving down from cube 6 to cube 2
-      new_y = 0
-      new_x = x + 2*side
-    elsif @map[y + 1][x] == " " 
-      if x < 2*side  # Moving down from cube 4 to cube 6
-        direction = "L"
-        new_y = x + 2*side
-        new_x = side - 1
-      else  # Moving down from cube 2 to cube 3
-        direction = "L"
-        new_y = x - side
-        new_x = 2*side - 1
-      end
-    else
-      new_y = y + 1
-      new_x = x
-    end
-
-    [new_y, new_x, direction]
-  end
-
-  private def fold_up(y, x)
-    side = @max_y / 4
-    direction = "U"
-
-    if y == 0
-      if x < 2*side # Moving upfrom cube 1 to cube 6
-        direction = "R"
-        new_y = x + 2*side
+      cube, new_dir = neighbors[direction]
+      case direction
+      when "R"
+        new_y = j
         new_x = 0
-      else # Moving upfrom cube 2 to cube 6
-        new_y = @max_y - 1
-        new_x = x - 2*side
-      end
-    elsif @map[y - 1][x] == " " # Moving up from cube 5 to cube 3
-      direction = "R"
-      new_y = x + side
-      new_x = side
-    else
-      new_y = y - 1
-      new_x = x
-    end
-    [new_y, new_x, direction]
-  end
-
-  private def fold_right(y, x)
-    side = @max_y / 4
-    direction = "R"
-
-    if x == @max_x - 1 # Moving right from cube 2 to cube 4
-      direction = "L"
-      new_y = 3*side - y - 1
-      new_x = 2*side - 1
-    elsif @map[y][x + 1] == " "
-      if y < 2*side # Moving right from cube 3 to cube 2
-        direction = "U"
-        new_y = side - 1
-        new_x = y + side
-      elsif y < 3*side # Moving right from cube 4 to cube 2
-        direction = "L"
-        new_y = 3*side - y - 1
-        new_x = 3*side - 1
-      else # Moving right from cube 6 to cube 4
-        direction = "U"
-        new_y = 3*side - 1
-        new_x = y - 2*side
-      end
-    else
-      new_x = x + 1
-      new_y = y
-    end
-
-    [new_y, new_x, direction]
-  end
-
-  private def fold_left(y, x)
-    side = @max_y / 4
-    direction = "L"
-
-    if x == 0
-      if y < 3*side # Moving left from cube 5 to cube 1
-        direction = "R"
-        new_y = 3*side - y - 1
-        new_x = side
-      else # Moving left from cube 6 to cube 1
-        direction = "D"
+      when "D"
         new_y = 0
-        new_x = y - 2*side
+        new_x = i
+      when "L"
+        new_y = j
+        new_x = size - 1
+      when "U"
+        new_y = size - 1
+        new_x = i
       end
-    elsif @map[y][x - 1] == " "
-      if y < side # Moving left from cube 1 to cube 5
-        direction = "R"
-        new_y = 3*side - y - 1
-        new_x = 0
-      else # Moving left from cube 3 to cube 5
-        direction = "D"
-        new_y = 2*side
-        new_x = y - side
+      idx_move = DIRECTIONS.keys.index(direction)
+      idx_dir = DIRECTIONS.keys.index(new_dir)
+      rotations = (idx_dir - idx_move) % 4
+      (1..rotations).each do
+        tmp = new_x
+        new_x = size - new_y - 1
+        new_y = tmp
       end
-    else
-      new_x = x - 1
-      new_y = y
     end
+    [cube, new_y, new_x, new_dir]
+  end
 
-    [new_y, new_x, direction]
+  def wall?(y, x)
+    @map[y][x] == "#"
+  end
+
+  def password(y, x, direction)
+    1000 * (grid_y * @size + y + 1) + 4 * (grid_x * @size + x + 1) + DIRECTIONS.keys.index(direction)
+  end
+
+  private def neighbors
+    { "R" => right, "D" => down, "L" => left, "U" => up }
   end
 
 end
