@@ -7,16 +7,16 @@ class Day22
     max_y = lines.length
     max_x = lines.map { |l| l.length }.max
     lines.map! { |line| line.ljust(max_x, " ") }
-    cube_size = [max_x, max_y].max / 4
-    @cubes = []
-    (0..(max_y / cube_size) - 1).each do |y|
-      (0..(max_x / cube_size) - 1).each do |x|
-        j = y * cube_size
-        i = x  * cube_size
+    square_size = [max_x, max_y].max / 4
+    @squares = []
+    (0..(max_y / square_size) - 1).each do |y|
+      (0..(max_x / square_size) - 1).each do |x|
+        j = y * square_size
+        i = x  * square_size
         if lines[j][i] != " "
-          map = lines[j..(j+cube_size-1)].map { |l| l[i..(i+cube_size-1)] }
-          cube = Cube.new(cube_size, y, x, map)
-          @cubes << cube
+          map = lines[j..(j+square_size-1)].map { |l| l[i..(i+square_size-1)] }
+          square = Square.new(square_size, y, x, map)
+          @squares << square
         end
       end
     end
@@ -34,82 +34,82 @@ class Day22
   end
 
   private def unfolded_adjacencies
-    @cubes.each do |cube|
-      left_cube = @cubes.find { |c| c.grid_y == cube.grid_y && c.grid_x == cube.grid_x - 1} || @cubes.select { |c| c.grid_y == cube.grid_y }.last
-      cube.left = [left_cube, "L"]
+    @squares.each do |square|
+      left_square = @squares.find { |c| c.grid_y == square.grid_y && c.grid_x == square.grid_x - 1} || @squares.select { |c| c.grid_y == square.grid_y }.last
+      square.left = [left_square, "L"]
       
-      right_cube = @cubes.find { |c| c.grid_y == cube.grid_y && c.grid_x == cube.grid_x + 1} || @cubes.select { |c| c.grid_y == cube.grid_y }.first
-      cube.right = [right_cube, "R"]
+      right_square = @squares.find { |c| c.grid_y == square.grid_y && c.grid_x == square.grid_x + 1} || @squares.select { |c| c.grid_y == square.grid_y }.first
+      square.right = [right_square, "R"]
 
-      up_cube = @cubes.find { |c| c.grid_y == cube.grid_y - 1 && c.grid_x == cube.grid_x } || @cubes.select { |c| c.grid_x == cube.grid_x }.last
-      cube.up = [up_cube, "U"]
+      up_square = @squares.find { |c| c.grid_y == square.grid_y - 1 && c.grid_x == square.grid_x } || @squares.select { |c| c.grid_x == square.grid_x }.last
+      square.up = [up_square, "U"]
 
-      down_cube = @cubes.find { |c| c.grid_y == cube.grid_y + 1 && c.grid_x == cube.grid_x } || @cubes.select { |c| c.grid_x == cube.grid_x }.first
-      cube.down = [down_cube, "D"]
+      down_square = @squares.find { |c| c.grid_y == square.grid_y + 1 && c.grid_x == square.grid_x } || @squares.select { |c| c.grid_x == square.grid_x }.first
+      square.down = [down_square, "D"]
     end
   end
 
   private def folded_adjacencies
-    # TODO: become smart enough to write a folding cube algorithm
+    # TODO: become smart enough to write a cube folding algorithm
 
-    @cubes[0].right = [@cubes[1], "R"]
-    @cubes[0].down = [@cubes[2], "D"]
-    @cubes[0].left = [@cubes[3], "R"]
-    @cubes[0].up = [@cubes[5], "R"]
+    @squares[0].right = [@squares[1], "R"]
+    @squares[0].down = [@squares[2], "D"]
+    @squares[0].left = [@squares[3], "R"]
+    @squares[0].up = [@squares[5], "R"]
 
-    @cubes[1].right = [@cubes[4], "L"]
-    @cubes[1].down = [@cubes[2], "L"]
-    @cubes[1].left = [@cubes[0], "L"]
-    @cubes[1].up = [@cubes[5], "U"]
+    @squares[1].right = [@squares[4], "L"]
+    @squares[1].down = [@squares[2], "L"]
+    @squares[1].left = [@squares[0], "L"]
+    @squares[1].up = [@squares[5], "U"]
 
-    @cubes[2].right = [@cubes[1], "U"]
-    @cubes[2].down = [@cubes[4], "D"]
-    @cubes[2].left = [@cubes[3], "D"]
-    @cubes[2].up = [@cubes[0], "U"]
+    @squares[2].right = [@squares[1], "U"]
+    @squares[2].down = [@squares[4], "D"]
+    @squares[2].left = [@squares[3], "D"]
+    @squares[2].up = [@squares[0], "U"]
 
-    @cubes[3].right = [@cubes[4], "R"]
-    @cubes[3].down = [@cubes[5], "D"]
-    @cubes[3].left = [@cubes[0], "R"]
-    @cubes[3].up = [@cubes[2], "R"]
+    @squares[3].right = [@squares[4], "R"]
+    @squares[3].down = [@squares[5], "D"]
+    @squares[3].left = [@squares[0], "R"]
+    @squares[3].up = [@squares[2], "R"]
 
-    @cubes[4].right = [@cubes[1], "L"]
-    @cubes[4].down = [@cubes[5], "L"]
-    @cubes[4].left = [@cubes[3], "L"]
-    @cubes[4].up = [@cubes[2], "U"]
+    @squares[4].right = [@squares[1], "L"]
+    @squares[4].down = [@squares[5], "L"]
+    @squares[4].left = [@squares[3], "L"]
+    @squares[4].up = [@squares[2], "U"]
 
-    @cubes[5].right = [@cubes[4], "U"]
-    @cubes[5].down = [@cubes[1], "D"]
-    @cubes[5].left = [@cubes[0], "D"]
-    @cubes[5].up = [@cubes[3], "U"]
+    @squares[5].right = [@squares[4], "U"]
+    @squares[5].down = [@squares[1], "D"]
+    @squares[5].left = [@squares[0], "D"]
+    @squares[5].up = [@squares[3], "U"]
   end
 
   private def solve
     x = 0
     y = 0
-    cube = @cubes.first
+    square = @squares.first
     direction = "R"
     @instructions.each do |steps, rotation|
       (1..steps).each do
-        new_cube, new_y, new_x, new_dir = cube.move(direction, y, x)
-        break if new_cube.wall?(new_y, new_x)
-        cube, y, x, direction = [new_cube, new_y, new_x, new_dir]
+        new_square, new_y, new_x, new_dir = square.move(direction, y, x)
+        break if new_square.wall?(new_y, new_x)
+        square, y, x, direction = [new_square, new_y, new_x, new_dir]
       end
       direction = rotate(direction, rotation)
     end
 
-    cube.password(y, x, direction)
+    square.password(y, x, direction)
   end
 
   private def rotate(direction, rotation)
-    idx = Cube::DIRECTIONS.keys.index(direction)
+    idx = Square::DIRECTIONS.keys.index(direction)
     idx = (idx + 1) % 4 if rotation == "R"
     idx = (idx - 1) % 4 if rotation == "L"
-    Cube::DIRECTIONS.keys[idx]
+    Square::DIRECTIONS.keys[idx]
   end
 
 end
 
-class Cube
+class Square
   attr_reader :size, :grid_y, :grid_x
   attr_accessor :left, :right, :up, :down
 
@@ -132,10 +132,10 @@ class Cube
     if j + dy >= 0 && j + dy < size && i + dx >= 0 && i + dx < size
       new_y = j + dy
       new_x = i + dx
-      cube = self
+      square = self
       new_dir = direction
     else
-      cube, new_dir = neighbors[direction]
+      square, new_dir = neighbors[direction]
       case direction
       when "R"
         new_y = j
@@ -159,7 +159,7 @@ class Cube
         new_y = tmp
       end
     end
-    [cube, new_y, new_x, new_dir]
+    [square, new_y, new_x, new_dir]
   end
 
   def wall?(y, x)
