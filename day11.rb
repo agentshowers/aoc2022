@@ -5,16 +5,17 @@ class Day11
     @monkeys = []
 
     File.readlines(INPUT, chomp: true).each_slice(7) do |slice|
-      monkey  = {}
-      monkey["items"] = slice[1].split(": ")[1].split(", ").map(&:to_i)
+      monkey = []
+      monkey <<  slice[1].split(": ")[1].split(", ").map(&:to_i)
       slice[2] =~ /Operation: new = old (\+|\*) (old|\d+)/
-      monkey["operation"] = [$1, $2]
+      monkey << $1
+      monkey << ($2 == "old" ? 0 : $2.to_i)
       slice[3] =~ /Test: divisible by (\d+)/
-      monkey["test"] = $1.to_i
+      monkey << $1.to_i
       slice[4] =~ /If true: throw to monkey (\d+)/
-      monkey["true"] = $1.to_i
+      monkey << $1.to_i
       slice[5] =~ /If false: throw to monkey (\d+)/
-      monkey["false"] = $1.to_i
+      monkey << $1.to_i
       @monkeys << monkey
     end
   end
@@ -26,7 +27,7 @@ class Day11
   end
   
   def two
-    div = @monkeys.map { |m| m["test"] }.inject(:*)
+    div = @monkeys.map { |m| m[3] }.inject(:*)
     run(10000) do |item|
       item % div
     end
@@ -34,19 +35,19 @@ class Day11
 
   private def run(rounds)
     activity = Array.new(@monkeys.length, 0)
-    items = @monkeys.map{ |m| m["items"].dup }
+    items = @monkeys.map{ |m| m[0].dup }
   
     (1..rounds).each do
-      @monkeys.each_with_index do |monkey, i|
+      @monkeys.each_with_index do |(_, op, op_r, tst, t, f), i|
         items[i].each do |item|
           activity[i] += 1
-          right = monkey["operation"][1] == "old" ? item : monkey["operation"][1].to_i
-          item = item.send(monkey["operation"][0], right)
+          right = op_r + (1 - (op_r <=> 0)) * item
+          item = item.send(op, right)
           item = yield(item)
-          if item % monkey["test"] == 0
-            items[monkey["true"]] << item
+          if item % tst == 0
+            items[t] << item
           else
-            items[monkey["false"]] << item
+            items[f] << item
           end
         end
         items[i] = []
