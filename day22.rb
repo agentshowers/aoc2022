@@ -7,7 +7,7 @@ class Day22
     max_y = lines.length
     max_x = lines.map { |l| l.length }.max
     lines.map! { |line| line.ljust(max_x, " ") }
-    square_size = [max_x, max_y].max / 4
+    square_size = (max_y-max_x).abs == 1 ? [max_x, max_y].max / 4 : [max_x, max_y].max / 5
     @squares = []
     (0..(max_y / square_size) - 1).each do |y|
       (0..(max_x / square_size) - 1).each do |x|
