@@ -80,37 +80,6 @@ class BucketList
     node.bucket = orig
   end
 
-  private def shift_right(node, from, to)
-    orig = from / SIZE
-    dest = to / SIZE
-    @buckets[orig].delete_at(from % SIZE)
-    while orig < dest
-      shifted_node = @buckets[orig + 1][0]
-      shifted_node.bucket = orig
-      @buckets[orig + 1].delete_at(0)
-      @buckets[orig] << shifted_node
-      
-      orig += 1
-    end
-    @buckets[orig].insert(to % SIZE, node)
-    node.bucket = orig
-  end
-
-  private def shift_left(node, from, to)
-    orig = from / SIZE
-    dest = to / SIZE
-    @buckets[orig].delete_at(from % SIZE)
-    while orig > dest
-      shifted_node = @buckets[orig - 1][SIZE-1]
-      shifted_node.bucket = orig
-      @buckets[orig - 1].delete_at(SIZE-1)
-      @buckets[orig].insert(0, shifted_node)
-      
-      orig -= 1
-    end
-    @buckets[orig].insert(to % SIZE, node)
-    node.bucket = orig
-  end
 end
 
 class Node
