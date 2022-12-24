@@ -1,5 +1,6 @@
 class Day23
   INPUT = "day23.input"
+  BUFFER = 50
 
   def initialize
     @min_x = 10000
@@ -10,11 +11,12 @@ class Day23
     File.readlines(INPUT, chomp: true).each_with_index do |line, j|
       line.split("").each_with_index do |s, i|
         if s == "#"
-          c = 10000*(i+20) + (j+20)
+
+          c = 10000*(i + BUFFER) + (j + BUFFER)
           elf = Elf.new(c)
           @map[c] = elf
           elf.recalculate_neighbors(@map)
-          boundaries(i+20, j+20)
+          boundaries(i + BUFFER, j + BUFFER)
         end
       end
     end
