@@ -10,11 +10,11 @@ class Day23
     File.readlines(INPUT, chomp: true).each_with_index do |line, j|
       line.split("").each_with_index do |s, i|
         if s == "#"
-          c = Complex(i, j)
+          c = 10000*(i+20) + (j+20)
           elf = Elf.new(c)
           @map[c] = elf
           elf.recalculate_neighbors(@map)
-          boundaries(i, j)
+          boundaries(i+20, j+20)
         end
       end
     end
@@ -43,7 +43,6 @@ class Day23
   end
 
   private def round(i)
-    first_direction = 
     proposals = {}
     @map.values.each do |elf|
       if elf.neighbors > 0
@@ -54,7 +53,7 @@ class Day23
     proposals.each do |c, elves|
       if elves.length == 1
         elves.first.move(@map, c) 
-        boundaries(c.real, c.imag)
+        boundaries(c / 10000, c % 10000)
       end
     end
   end
@@ -70,8 +69,8 @@ class Day23
     (@min_y..@max_y).each do |y|
       str = ""
       (@min_x..@max_x).each do |x|
-        if @map[Complex(x, y)]
-          str << @map[Complex(x, y)].neighbors.to_s
+        if @map[10000*x + y]
+          str << @map[10000*x + y].neighbors.to_s
         else
           str << "."
         end
@@ -83,7 +82,7 @@ class Day23
 end
 
 class Elf
-  attr_accessor :complex, :neighbors
+  attr_accessor :coordinates, :neighbors
 
   NEIGHBORS = [
     [1, -1],
@@ -102,8 +101,8 @@ class Elf
     [[1, 0], [1, -1], [1, 1]]
   ]
 
-  def initialize(complex)
-    @complex = complex
+  def initialize(coordinates)
+    @coordinates = coordinates
     @neighbors = 0
   end
 
@@ -111,9 +110,9 @@ class Elf
     neighbor_locations.each do |c|
       map[c].neighbors -= 1 if map[c]
     end
-    map.delete(complex)
-    @complex = new_c
-    map[complex] = self
+    map.delete(coordinates)
+    @coordinates = new_c
+    map[coordinates] = self
     recalculate_neighbors(map)
   end
 
@@ -130,9 +129,9 @@ class Elf
   def candidate_move(map, i)
     (0..3).each do |j|
       direction = DIRECTIONS[(i+j) % 4]
-      if direction.none? { |dx, dy| map[complex + Complex(dx, dy)] }
+      if direction.none? { |dx, dy| map[coordinates + 10000*dx + dy] }
         dx, dy = direction.first
-        return complex + Complex(dx, dy)
+        return coordinates + 10000*dx + dy
       end
     end
 
@@ -141,7 +140,7 @@ class Elf
 
   private def neighbor_locations
     NEIGHBORS.map do |dx, dy|
-      complex + Complex(dx, dy)
+      coordinates + 10000*dx + dy
     end
   end
 
