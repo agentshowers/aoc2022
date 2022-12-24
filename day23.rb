@@ -43,12 +43,10 @@ class Day23
   end
 
   def one
-    #return 4091
     @p1
   end
 
   def two
-    #return 1036
     @p2
   end
 
@@ -58,10 +56,6 @@ class Day23
       @p1 = (@max_x - @min_x + 1) * (@max_y - @min_y + 1) - @map.values.length if i == 10
       round(i)
       i += 1
-      # puts "\nRound #{i}"
-      # print
-      # puts @candidates.keys.length
-      # break if i == 1
       if @candidates.empty?
         @p2 = i + 1
         break
@@ -73,7 +67,7 @@ class Day23
     proposals = {}
 
     @candidates.values.each do |elf|
-      if elf.neighbors > 0# && elf.neighbors < 6
+      if elf.neighbors > 0 && elf.neighbors < 6
         c, dir = possible_move(elf, i)
         proposals[c] = (proposals[c] || []) + [[elf, dir]] if c
       else
@@ -111,7 +105,7 @@ class Day23
       if @map[c]
         @map[c].neighbors -= 1
         @candidates.delete(@map[c].id) if @map[c].neighbors == 0
-        #candidates[map[c].id] = map[c] if map[c].neighbors == 5
+        @candidates[@map[c].id] = @map[c] if @map[c].neighbors == 5
         elf.neighbors -= 1
       end
     end
@@ -124,7 +118,7 @@ class Day23
       c = coordinates + 10000*dx + dy
       if @map[c]
         @map[c].neighbors += 1
-        #candidates.delete(map[c].id) if map[c].neighbors == 6
+        @candidates.delete(@map[c].id) if @map[c].neighbors == 6
         @candidates[@map[c].id] = @map[c] if @map[c].neighbors > 0
         elf.neighbors += 1
       end
@@ -158,7 +152,7 @@ class Day23
       str = ""
       (@min_x..@max_x).each do |x|
         if @map[10000*x + y]
-          str << @map[10000*x + y].neighbors.to_s #(@candidates.key?(@map[10000*x + y].id) ? "t" : "f")
+          str << @map[10000*x + y].neighbors.to_s
         else
           str << "."
         end
