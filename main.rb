@@ -23,13 +23,14 @@ SOLUTIONS = [
   [8028, 8798438007673],
   [256997859093114, 3952288690726],
   [122082, 134076],
-  [4091, 1036]
+  [4091, 1036],
+  [253, 794]
 ]
-DAYS = 23
+DAYS = 24
 
 total_time = 0
 
-(1..DAYS).each do |n|
+(24..DAYS).each do |n|
   require_relative "day#{n.to_s.rjust(2, '0')}.rb"
 
   day_class = Kernel.const_get("Day#{n}")
