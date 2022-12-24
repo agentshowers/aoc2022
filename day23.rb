@@ -78,7 +78,7 @@ class Day23
     proposals.each do |c, elves|
       if elves.length == 1
         elf, dir = elves.first
-        move(elf, c, dir)
+        move(elf, dir)
         boundaries(c / 10000, c % 10000)
       end
     end
@@ -97,37 +97,42 @@ class Day23
     nil
   end
 
-  private def move(elf, coordinates, dir)
-    opposite_dir = (1 - dir%2) + 2*(dir/2)
-
-    MOVES[opposite_dir].each do |dx, dy|
-      c = elf.coordinates + 10000*dx + dy
-      if @map[c]
-        @map[c].neighbors -= 1
-        @candidates.delete(@map[c].id) if @map[c].neighbors == 0
-        @candidates[@map[c].id] = @map[c] if @map[c].neighbors == 5
-        elf.neighbors -= 1
-      end
-    end
+  private def move(elf, dir)
+    dx, dy = MOVES[dir][0]
+    coordinates = elf.coordinates + 10000*dx + dy
+    recalculate_neighbors(elf, dir, true)
 
     @map.delete(elf.coordinates)
     elf.coordinates = coordinates
     @map[coordinates] = elf
   
-    MOVES[dir].map do |dx, dy|
-      c = coordinates + 10000*dx + dy
-      if @map[c]
-        @map[c].neighbors += 1
-        @candidates.delete(@map[c].id) if @map[c].neighbors == 6
-        @candidates[@map[c].id] = @map[c] if @map[c].neighbors > 0
-        elf.neighbors += 1
-      end
-    end
+    recalculate_neighbors(elf, dir, false)
+
     if elf.neighbors == 0
       @candidates.delete(elf.id)
     else
       @candidates[elf.id] = elf
     end
+  end
+
+  private def recalculate_neighbors(elf, dir, out)
+    nx = out ? -1 : 1
+    del_threshold = out ? 0 : 6
+    add_threshold = out ? 5 : 1
+    dir = opposite(dir) if out
+    MOVES[dir].each do |dx, dy|
+      c = elf.coordinates + 10000*dx + dy
+      if @map[c]
+        @map[c].neighbors += nx
+        @candidates.delete(@map[c].id) if @map[c].neighbors == del_threshold
+        @candidates[@map[c].id] = @map[c] if @map[c].neighbors == add_threshold
+        elf.neighbors += nx
+      end
+    end
+  end
+
+  private def opposite(dir)
+    (1 - dir%2) + 2*(dir/2)
   end
 
   private def initial_neighbors(elf)
