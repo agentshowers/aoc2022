@@ -24,13 +24,14 @@ SOLUTIONS = [
   [256997859093114, 3952288690726],
   [122082, 134076],
   [4091, 1036],
-  [253, 794]
+  [253, 794],
+  ["2-==10===-12=2-1=-=0", "Merry Christmas"]
 ]
-DAYS = 24
+DAYS = 25
 
 total_time = 0
 
-(24..DAYS).each do |n|
+(1..DAYS).each do |n|
   require_relative "day#{n.to_s.rjust(2, '0')}.rb"
 
   day_class = Kernel.const_get("Day#{n}")
@@ -46,9 +47,6 @@ total_time = 0
   raise "Failed day #{n} part 2. Expected #{SOLUTIONS[n-1][1]} got #{res2}" if SOLUTIONS[n-1][0] != res1
 
   puts "Day #{n} (#{time.round(2)} ms)"
-  # puts "1: #{res1}"
-  # puts "2: #{res2}"
-  # puts ""
 end
 
 puts "Total time: #{total_time.round(2)} ms"
