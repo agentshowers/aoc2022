@@ -69,18 +69,21 @@ class Day23
     @candidates.values.each do |elf|
       if elf.neighbors > 0 && elf.neighbors < 6
         c, dir = possible_move(elf, i)
-        proposals[c] = (proposals[c] || []) + [[elf, dir]] if c
+        if c
+          if proposals[c]
+            proposals.delete(c)
+          else
+            proposals[c] = [elf, dir]
+          end
+        end
       else
         @candidates.delete(elf.id)
       end
     end
 
-    proposals.each do |c, elves|
-      if elves.length == 1
-        elf, dir = elves.first
-        move(elf, dir)
-        boundaries(c / 10000, c % 10000)
-      end
+    proposals.each do |c, (elf, dir)|
+      move(elf, dir)
+      boundaries(c / 10000, c % 10000)
     end
   end
 
