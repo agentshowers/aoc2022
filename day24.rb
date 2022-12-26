@@ -1,3 +1,5 @@
+require 'rb_heap'
+
 class Day24
   INPUT = "day24.input"
   DIRECTIONS = [[1, 0], [0, 1], [-1, 0], [0, -1], [0, 0]]
@@ -38,12 +40,16 @@ class Day24
       break if free(start_x, start_y, start)
     end
     init_key = encode(start_x, start_y, start)
-    queue = [init_key]
+    heap = Heap.new do |a, b|
+      a_x, a_y, a_min = parse(a)
+      b_x, b_y, b_min = parse(b)
+      (end_x - a_x).abs + (end_y - a_y).abs + a_min < (end_x - b_x).abs + (end_y - b_y).abs + b_min
+    end
+    heap << init_key
     visited = {}
     dist = { init_key => start }
-    states = 0
-    while queue.length > 0
-      key = queue.shift
+    while heap.size > 0
+      key = heap.pop
       
       x, y, minutes = parse(key)
       DIRECTIONS.each do |dx, dy|
@@ -52,11 +58,15 @@ class Day24
         if !visited[nkey] && in_bounds?(nx, ny) && free(nx, ny, nmins)
           visited[nkey] = true
           return dist[key] + 2 if nx == end_x && ny == end_y
-          queue << nkey
+          heap << nkey
           dist[nkey] = dist[key] + 1
         end
       end
     end
+  end
+
+  private def fastest_solution(x, y, end_x, end_y, minutes)
+    (end_x - x).abs + (end_y - y).abs + minutes
   end
 
   private def in_bounds?(x, y)
