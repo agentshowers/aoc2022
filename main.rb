@@ -31,7 +31,14 @@ DAYS = 25
 
 total_time = 0
 
-(1..DAYS).each do |n|
+if ARGV[0]
+  day = ARGV[0].to_i
+  range = (day..day)
+else
+  range = (1..DAYS)
+end
+
+range.each do |n|
   require_relative "day#{n.to_s.rjust(2, '0')}.rb"
 
   day_class = Kernel.const_get("Day#{n}")
