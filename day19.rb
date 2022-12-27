@@ -46,6 +46,8 @@ class Day19
       geode = acc[key]
       minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = key
       if ceiling(geode, geode_r, minutes) >= @global_floor
+        # state = State.new(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r)
+        # state.candidates(blueprint, @max_minutes).each do |o,c,ob,g,o_r,c_r,ob_r,g_r,mins|
         candidates(ore, clay, obs, ore_r, clay_r, obs_r, geode_r, blueprint, minutes).each do |o,c,ob,g,o_r,c_r,ob_r,g_r,mins|
           g += geode
           if mins > @max_minutes
@@ -120,7 +122,7 @@ class Day19
         candidates << build_robot(ore, clay, obs, ore_r, clay_r, obs_r, geode_r, ore_needs, clay_needs, obs_needs, minutes, blueprint[1], [0, 1, 0, 0], build_time) if clay_needed & has_time
 
         if time_left >= blueprint[0][0] + 2
-          ore_needed = robot_needed?(ore_needs, ore_r, ore, time_left, 0)
+          ore_needed = robot_needed?(ore_needs, ore_r, ore, time_left, 3)
           build_time = time_for_ore(blueprint[0], robots, resources)
           has_time = can_build_robot?(build_time, time_left)
           candidates << build_robot(ore, clay, obs, ore_r, clay_r, obs_r, geode_r, ore_needs, clay_needs, obs_needs, minutes, blueprint[0], [1, 0, 0, 0], build_time) if ore_needed & has_time
@@ -203,4 +205,137 @@ class Day19
     geode + geode_r*minutes_left + ((minutes_left)*(minutes_left+1))/2
   end
 
+end
+
+class State
+
+  def initialize(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r)
+    @minutes = minutes
+    @ore = ore
+    @clay = clay
+    @obs = obs
+    @ore_r = ore_r
+    @clay_r = clay_r
+    @obs_r = obs_r
+    @geode_r = geode_r
+  end
+
+  def candidates(blueprint, max_minutes)
+    @time_left = max_minutes - @minutes
+    @blueprint = blueprint
+
+    candidates = []
+
+    if @time_left == 0
+      candidates << generate_candidate([0, 0, 0, 0], [0, 0, 0, 0], 0)
+    else
+      has_time = can_build_robot?(time_for_geode)
+      candidates << generate_candidate(blueprint[3], [0, 0, 0, 1], time_for_geode) if has_time
+
+      if time_for_geode.abs > 0
+        obs_needed = robot_needed?(obs_needs, @obs_r, @obs, 3)
+        has_time = can_build_robot?(time_for_obs)
+        candidates << generate_candidate(blueprint[2], [0, 0, 1, 0], time_for_obs) if obs_needed & has_time
+
+        clay_needed = obs_needed && robot_needed?(clay_needs, @clay_r, @clay, 5)
+        has_time = can_build_robot?(time_for_clay)
+        candidates << generate_candidate(blueprint[1], [0, 1, 0, 0], time_for_clay) if clay_needed & has_time
+
+        if @time_left >= blueprint[0][0] + 2
+          ore_needed = robot_needed?(ore_needs, @ore_r, @ore, 3)
+          has_time = can_build_robot?(time_for_ore)
+          candidates << generate_candidate(blueprint[0], [1, 0, 0, 0], time_for_ore) if ore_needed & has_time
+        end
+
+        candidates << generate_candidate([0, 0, 0, 0], [0, 0, 0, 0], 0)
+      end
+    end
+
+    candidates
+  end
+
+  private def generate_candidate(costs, robots, mins)
+    new_ore = @ore + @ore_r*(mins+1) - costs[0]
+    new_clay = @clay + @clay_r*(mins+1) - costs[1]
+    new_obs = @obs + @obs_r*(mins+1) - costs[2]
+    [
+      (@ore_r + robots[0] == ore_needs ? [ore_needs, new_ore].min : new_ore),
+      (@clay_r + robots[1] == clay_needs ? [clay_needs, new_clay].min : new_clay),
+      (@obs_r + robots[2] == obs_needs ? [obs_needs, new_obs].min : new_obs),
+      @geode_r*(mins+1),
+      @ore_r + robots[0],
+      @clay_r + robots[1],
+      @obs_r + robots[2],
+      @geode_r + robots[3],
+      @minutes + mins + 1
+    ]
+  end
+
+  private def time_for_resource(cost, robot, resource)
+    return 0 if resource >= cost
+    (1.0 * (cost - resource) / robot).ceil
+  end
+
+  private def robot_needed?(max_cost, robots, resources, threshold)
+    pays_off = @time_left >= threshold
+    not_enough_robots = robots < max_cost
+    not_enough_resources = resources + robots * @time_left < max_cost * @time_left
+    
+    pays_off && not_enough_robots && not_enough_resources
+  end
+
+  private def can_build_robot?(build_time)
+    build_time > -1 && build_time < @time_left
+  end
+
+  # Ore
+
+  private def ore_needs
+    @ore_needs ||= [@blueprint[3][0], @blueprint[2][0], @blueprint[1][0]].max
+  end
+
+  private def time_for_ore
+    @time_for_ore ||= time_for_resource(@blueprint[0][0], @ore_r, @ore)
+  end
+
+  # Clay
+
+  private def clay_needs
+    @clay_needs ||= @blueprint[2][1]
+  end
+
+  private def time_for_clay
+    return -1 if @ore_r == 0
+
+    @time_for_clay ||= time_for_resource(@blueprint[1][0], @ore_r, @ore)
+  end
+
+  # Obsidian
+
+  private def obs_needs
+    @obs_needs ||= @blueprint[3][2]
+  end
+
+  private def time_for_obs
+    return -1 if @ore_r == 0 || @clay_r == 0
+
+    @time_for_obs ||= begin
+      ore_time = time_for_resource(@blueprint[2][0], @ore_r, @ore)
+      clay_time = time_for_resource(@blueprint[2][1], @clay_r, @clay)
+      [ore_time, clay_time].max
+    end
+  end
+
+  # Geode
+
+  private def time_for_geode
+    return -1 if @ore_r == 0 || @obs_r == 0
+
+    @time_for_geode ||= begin
+      ore_time = time_for_resource(@blueprint[3][0], @ore_r, @ore)
+      obs_time = time_for_resource(@blueprint[3][2], @obs_r, @obs)
+      [ore_time, obs_time].max
+    end
+  end
+  
 end
