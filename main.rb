@@ -38,6 +38,9 @@ else
   range = (1..DAYS)
 end
 
+puts "Day   Time"
+puts "----------------"
+
 range.each do |n|
   require_relative "day#{n.to_s.rjust(2, '0')}.rb"
 
@@ -53,7 +56,15 @@ range.each do |n|
   raise "Failed day #{n} part 1. Expected #{SOLUTIONS[n-1][0]} got #{res1}" if SOLUTIONS[n-1][0] != res1
   raise "Failed day #{n} part 2. Expected #{SOLUTIONS[n-1][1]} got #{res2}" if SOLUTIONS[n-1][0] != res1
 
-  puts "Day #{n} (#{time.round(2)} ms)"
+  if time < 100.0
+    color_code = 32
+  elsif time < 1000.0
+    color_code = 33
+  else
+    color_code = 31
+  end
+  puts sprintf("%2s    \e[#{color_code}m#{time.round(2)} ms\e[0m", n)
 end
 
-puts "Total time: #{total_time.round(2)} ms"
+puts "----------------"
+puts "      #{total_time.round(2)} ms"
