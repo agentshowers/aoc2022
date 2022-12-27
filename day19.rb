@@ -166,14 +166,16 @@ class Day19
   end
 
   private def time_to_build(costs, robots, resources)
-    minutes_to_build = (0..3).map do |i|
+    max = 0
+    minutes_to_build = (0..3).each do |i|
       return -1 if robots[i] == 0 && costs[i] > 0
       if costs[i] == 0
         0
       else
-        (1.0 * [(costs[i] - resources[i]), 0].max / robots[i]).ceil
+        max = [(1.0 * [(costs[i] - resources[i]), 0].max / robots[i]).ceil, max].max
       end
-    end.max
+    end
+    max
   end
 
   private def floor(geode, geode_r, minutes)
