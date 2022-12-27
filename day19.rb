@@ -99,22 +99,26 @@ class Day19
       candidates << [[0, 0, 0, 0], [0, 0, 0, 0], 0]
     else
       time_left = @max_minutes - minutes
-
-      has_time, build_time = can_build_robot?(blueprint, robots, resources, 3, time_left)
+      
+      mins_to_build = time_for_geode(blueprint[3], robots, resources)
+      has_time, build_time = can_build_robot?(mins_to_build, time_left)
       candidates << [blueprint[3], [0, 0, 0, 1], build_time] if has_time
 
       if build_time.abs > 0
         obs_needed = robot_needed?(blueprint, robots, resources, 2, time_left)
-        has_time, build_time = can_build_robot?(blueprint, robots, resources, 2, time_left)
+        mins_to_build = time_for_obs(blueprint[2], robots, resources)
+        has_time, build_time = can_build_robot?(mins_to_build, time_left)
         candidates << [blueprint[2], [0, 0, 1, 0], build_time] if obs_needed && has_time
 
         clay_needed = obs_needed && robot_needed?(blueprint, robots, resources, 1, time_left)
-        has_time, build_time = can_build_robot?(blueprint, robots, resources, 1, time_left)
+        mins_to_build = time_for_clay(blueprint[1], robots, resources)
+        has_time, build_time = can_build_robot?(mins_to_build, time_left)
         candidates << [blueprint[1], [0, 1, 0, 0], build_time] if clay_needed && has_time
 
         if time_left >= blueprint[0][0] + 2
           ore_needed = robot_needed?(blueprint, robots, resources, 0, time_left)
-          has_time, build_time = can_build_robot?(blueprint, robots, resources, 0, time_left)
+          mins_to_build = time_for_ore(blueprint[0], robots, resources)
+          has_time, build_time = can_build_robot?(mins_to_build, time_left)
           candidates << [blueprint[0], [1, 0, 0, 0], build_time] if ore_needed && has_time
         end
 
@@ -153,29 +157,39 @@ class Day19
     pays_off && not_enough_robots && not_enough_resources
   end
 
-  private def can_build_robot?(blueprint, robots, resources, idx, time_left)
-    mins_to_build = time_to_build(blueprint[idx], robots, resources)
+  private def can_build_robot?(mins_to_build, time_left)
     built_in_time = mins_to_build > -1 && mins_to_build < time_left
     [built_in_time, mins_to_build]
   end
 
-  private def build_robot(costs, robots, resources, minutes_to_build)
-    (0..3).map do |i|
-      robots[i]*minutes_to_build - costs[i]
-    end
+  private def time_for_resource(costs, robots, resources, idx)
+    (1.0 * [(costs[idx] - resources[idx]), 0].max / robots[idx]).ceil
   end
 
-  private def time_to_build(costs, robots, resources)
-    max = 0
-    minutes_to_build = (0..3).each do |i|
-      return -1 if robots[i] == 0 && costs[i] > 0
-      if costs[i] == 0
-        0
-      else
-        max = [(1.0 * [(costs[i] - resources[i]), 0].max / robots[i]).ceil, max].max
-      end
-    end
-    max
+  private def time_for_geode(costs, robots, resources)
+    return -1 if robots[0] == 0 || robots[2] == 0
+
+    ore_time = time_for_resource(costs, robots, resources, 0)
+    obs_time = time_for_resource(costs, robots, resources, 2)
+    [ore_time, obs_time].max
+  end
+
+  private def time_for_obs(costs, robots, resources)
+    return -1 if robots[0] == 0 || robots[1] == 0
+
+    ore_time = time_for_resource(costs, robots, resources, 0)
+    clay_time = time_for_resource(costs, robots, resources, 1)
+    [ore_time, clay_time].max
+  end
+
+  private def time_for_clay(costs, robots, resources)
+    return -1 if robots[0] == 0
+
+    time_for_resource(costs, robots, resources, 0)
+  end
+
+  private def time_for_ore(costs, robots, resources)
+    time_for_resource(costs, robots, resources, 0)
   end
 
   private def floor(geode, geode_r, minutes)
