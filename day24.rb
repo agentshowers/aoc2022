@@ -39,26 +39,24 @@ class Day24
       start += 1
       break if free(start_x, start_y, start)
     end
-    init_key = encode(start_x, start_y, start)
+    init_state = State.new(start_x, start_y, start, @lcm)
     heap = Heap.new do |a, b|
-      a_x, a_y, a_min = parse(a)
-      b_x, b_y, b_min = parse(b)
-      (end_x - a_x).abs + (end_y - a_y).abs + a_min < (end_x - b_x).abs + (end_y - b_y).abs + b_min
+      (end_x - a.x).abs + (end_y - a.y).abs + a.minutes < (end_x - b.x).abs + (end_y - b.y).abs + b.minutes
     end
-    heap << init_key
+    heap << init_state
     visited = {}
-    dist = { init_key => start }
+    dist = { init_state.key => start }
     while heap.size > 0
-      key = heap.pop
-      
-      x, y, minutes = parse(key)
+      state = heap.pop
+      key = state.key
       DIRECTIONS.each do |dx, dy|
-        nx, ny, nmins = [x+dx, y+dy, minutes+1]
-        nkey = encode(nx, ny, nmins)
+        nx, ny, nmins = [state.x+dx, state.y+dy, state.minutes+1]
+        nstate = State.new(nx, ny, nmins, @lcm)
+        nkey = nstate.key
         if !visited[nkey] && in_bounds?(nx, ny) && free(nx, ny, nmins)
           visited[nkey] = true
           return dist[key] + 2 if nx == end_x && ny == end_y
-          heap << nkey
+          heap << nstate
           dist[nkey] = dist[key] + 1
         end
       end
@@ -82,11 +80,18 @@ class Day24
   private def encode(x, y, minutes)
     x + y*1000 + (minutes % @lcm)*1000000
   end
+end
 
-  private def parse(key)
-    x = key % 1000
-    y = (key % 1000000) / 1000
-    minutes = key / 1000000
-    [x, y, minutes]
+class State
+  attr_reader :x, :y, :minutes
+
+  def initialize(x, y, minutes, lcm)
+    @x = x
+    @y = y
+    @minutes = minutes % lcm
+  end
+
+  def key
+    @x + @y*1000 + @minutes*1000000
   end
 end
