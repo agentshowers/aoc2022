@@ -6,27 +6,8 @@ class Day24
     lines = File.readlines(INPUT, chomp: true)
     @rows = lines.length - 2
     @columns = lines[0].length - 2
-    row_patterns = Array.new(@rows) { [] }
-    column_patterns = Array.new(@columns) { [] }
     @lcm = @rows.lcm(@columns)
-    lines.each_with_index do |line, j|
-      next if j == 0 || j > @rows
-      line.chars.each_with_index do |c, i|
-        next if i == 0 || i > @columns
-        row_patterns[j-1] << [i-1, 1] if c == ">"
-        row_patterns[j-1] << [i-1, -1] if c == "<"
-        column_patterns[i-1] << [j-1, 1] if c == "v"
-        column_patterns[i-1] << [j-1, -1] if c == "^"
-      end
-    end
-    @clashes = Array.new(@columns) { Array.new(@rows) { [] } }
-    (0..@columns-1).each do |i|
-      (0..@rows-1).each do |j|
-        columns = column_patterns[i].map { |y, d| (j-y)*d % @rows }
-        rows = row_patterns[j].map { |x, d| (i-x)*d % @columns }
-        @clashes[i][j] = [columns.sort, rows.sort]
-      end
-    end
+    precompute_patterns(lines)
   end
 
   def one
@@ -73,6 +54,29 @@ class Day24
     vert_clash = @clashes[x][y][0].include?(minutes % @rows)
     hor_clash = @clashes[x][y][1].include?(minutes % @columns)
     !vert_clash && !hor_clash    
+  end
+
+  private def precompute_patterns(lines)
+    row_patterns = Array.new(@rows) { [] }
+    column_patterns = Array.new(@columns) { [] }
+    lines.each_with_index do |line, j|
+      next if j == 0 || j > @rows
+      line.chars.each_with_index do |c, i|
+        next if i == 0 || i > @columns
+        row_patterns[j-1] << [i-1, 1] if c == ">"
+        row_patterns[j-1] << [i-1, -1] if c == "<"
+        column_patterns[i-1] << [j-1, 1] if c == "v"
+        column_patterns[i-1] << [j-1, -1] if c == "^"
+      end
+    end
+    @clashes = Array.new(@columns) { Array.new(@rows) { [] } }
+    (0..@columns-1).each do |i|
+      (0..@rows-1).each do |j|
+        columns = column_patterns[i].map { |y, d| (j-y)*d % @rows }
+        rows = row_patterns[j].map { |x, d| (i-x)*d % @columns }
+        @clashes[i][j] = [columns.sort, rows.sort]
+      end
+    end
   end
 
 end
