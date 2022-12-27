@@ -1,5 +1,3 @@
-require 'rb_heap'
-
 class Day24
   INPUT = "day24.input"
   DIRECTIONS = [[1, 0], [0, 1], [-1, 0], [0, -1], [0, 0]]
@@ -47,13 +45,10 @@ class Day24
       break if free(start_x, start_y, start)
     end
     init_state = State.new(start_x, start_y, start, @lcm)
-    heap = Heap.new do |a, b|
-      (end_x - a.x).abs + (end_y - a.y).abs + a.minutes < (end_x - b.x).abs + (end_y - b.y).abs + b.minutes
-    end
-    heap << init_state
     visited = {}
-    while heap.size > 0
-      state = heap.pop
+    queue = [init_state]
+    while queue.length > 0
+      state = queue.shift
       key = state.key
       DIRECTIONS.each do |dx, dy|
         nx, ny, nmins = [state.x+dx, state.y+dy, state.minutes+1]
@@ -62,7 +57,7 @@ class Day24
         if !visited[nkey] && in_bounds?(nx, ny) && free(nx, ny, nmins)
           visited[nkey] = true
           return nmins + 1 if nx == end_x && ny == end_y
-          heap << nstate
+          queue << nstate
         end
       end
     end
