@@ -25,18 +25,16 @@ class Day24
       start += 1
       break if free(start_x, start_y, start)
     end
-    init_state = State.new(start_x, start_y, start, @lcm)
+    init_state = [start_x, start_y, start]
     visited = {}
     queue = [init_state]
     while queue.length > 0
-      state = queue.shift
-      key = state.key
+      x, y, minutes = queue.shift
       DIRECTIONS.each do |dx, dy|
-        nx, ny, nmins = [state.x+dx, state.y+dy, state.minutes+1]
-        nstate = State.new(nx, ny, nmins, @lcm)
-        nkey = nstate.key
-        if !visited[nkey] && in_bounds?(nx, ny) && free(nx, ny, nmins)
-          visited[nkey] = true
+        nx, ny, nmins = [x+dx, y+dy, minutes+1]
+        nstate = [nx, ny, nmins]
+        if !visited[nstate] && in_bounds?(nx, ny) && free(nx, ny, nmins)
+          visited[nstate] = true
           return nmins + 1 if nx == end_x && ny == end_y
           queue << nstate
         end
@@ -51,9 +49,8 @@ class Day24
   private def free(x, y, minutes)
     minutes = minutes % @lcm
 
-    vert_clash = @clashes[x][y][0].include?(minutes % @rows)
-    hor_clash = @clashes[x][y][1].include?(minutes % @columns)
-    !vert_clash && !hor_clash    
+    return false if @clashes[x][y][0].include?(minutes % @rows)
+    !@clashes[x][y][1].include?(minutes % @columns)
   end
 
   private def precompute_patterns(lines)
@@ -79,19 +76,4 @@ class Day24
     end
   end
 
-end
-
-class State
-  attr_reader :x, :y, :minutes
-
-  def initialize(x, y, minutes, lcm)
-    @x = x
-    @y = y
-    @minutes = minutes
-    @lcm = lcm
-  end
-
-  def key
-    @key ||= @x + @y*1000 + (@minutes % @lcm)*1000000
-  end
 end
