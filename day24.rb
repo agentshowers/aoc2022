@@ -68,10 +68,6 @@ class Day24
     end
   end
 
-  private def fastest_solution(x, y, end_x, end_y, minutes)
-    (end_x - x).abs + (end_y - y).abs + minutes
-  end
-
   private def in_bounds?(x, y)
     x >= 0 && x < @columns && y >= 0 && y < @rows
   end
