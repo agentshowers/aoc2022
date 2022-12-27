@@ -8,18 +8,25 @@ class Day24
     lines = File.readlines(INPUT, chomp: true)
     @rows = lines.length - 2
     @columns = lines[0].length - 2
-    @row_patterns = Array.new(@rows) { [] }
-    @column_patterns = Array.new(@columns) { [] }
+    row_patterns = Array.new(@rows) { [] }
+    column_patterns = Array.new(@columns) { [] }
     @lcm = @rows.lcm(@columns)
-
     lines.each_with_index do |line, j|
       next if j == 0 || j > @rows
       line.chars.each_with_index do |c, i|
         next if i == 0 || i > @columns
-        @row_patterns[j-1] << [i-1, 1] if c == ">"
-        @row_patterns[j-1] << [i-1, -1] if c == "<"
-        @column_patterns[i-1] << [j-1, 1] if c == "v"
-        @column_patterns[i-1] << [j-1, -1] if c == "^"
+        row_patterns[j-1] << [i-1, 1] if c == ">"
+        row_patterns[j-1] << [i-1, -1] if c == "<"
+        column_patterns[i-1] << [j-1, 1] if c == "v"
+        column_patterns[i-1] << [j-1, -1] if c == "^"
+      end
+    end
+    @clashes = Array.new(@columns) { Array.new(@rows) { [] } }
+    (0..@columns-1).each do |i|
+      (0..@rows-1).each do |j|
+        columns = column_patterns[i].map { |y, d| (j-y)*d % @rows }
+        rows = row_patterns[j].map { |x, d| (i-x)*d % @columns }
+        @clashes[i][j] = [columns.sort, rows.sort]
       end
     end
   end
@@ -45,7 +52,6 @@ class Day24
     end
     heap << init_state
     visited = {}
-    dist = { init_state.key => start }
     while heap.size > 0
       state = heap.pop
       key = state.key
@@ -55,9 +61,8 @@ class Day24
         nkey = nstate.key
         if !visited[nkey] && in_bounds?(nx, ny) && free(nx, ny, nmins)
           visited[nkey] = true
-          return dist[key] + 2 if nx == end_x && ny == end_y
+          return nmins + 1 if nx == end_x && ny == end_y
           heap << nstate
-          dist[nkey] = dist[key] + 1
         end
       end
     end
@@ -72,14 +77,13 @@ class Day24
   end
 
   private def free(x, y, minutes)
-    vert_free = @column_patterns[x].none? { |j, d| (j + minutes*d) % @rows == y }
-    hor_free = @row_patterns[y].none? { |i, d| (i + minutes*d) % @columns == x }
-    vert_free && hor_free
+    minutes = minutes % @lcm
+
+    vert_clash = @clashes[x][y][0].include?(minutes % @rows)
+    hor_clash = @clashes[x][y][1].include?(minutes % @columns)
+    !vert_clash && !hor_clash    
   end
 
-  private def encode(x, y, minutes)
-    x + y*1000 + (minutes % @lcm)*1000000
-  end
 end
 
 class State
@@ -88,10 +92,11 @@ class State
   def initialize(x, y, minutes, lcm)
     @x = x
     @y = y
-    @minutes = minutes % lcm
+    @minutes = minutes
+    @lcm = lcm
   end
 
   def key
-    @x + @y*1000 + @minutes*1000000
+    @key ||= @x + @y*1000 + (@minutes % @lcm)*1000000
   end
 end
