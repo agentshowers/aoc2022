@@ -166,9 +166,8 @@ class Day19
   end
 
   private def time_to_build(costs, robots, resources)
-    return -1 unless (0..3).none? { |i| robots[i] == 0 && costs[i] > 0 }
-  
     minutes_to_build = (0..3).map do |i|
+      return -1 if robots[i] == 0 && costs[i] > 0
       if costs[i] == 0
         0
       else
