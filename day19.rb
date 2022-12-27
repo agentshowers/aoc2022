@@ -95,6 +95,10 @@ class Day19
     resources = [ore, clay, obs, 0]
     robots = [ore_r, clay_r, obs_r, geode_r]
     candidates = []
+    ore_needs = [blueprint[3][0], blueprint[2][0], blueprint[1][0]].max
+    clay_needs = blueprint[2][1]
+    obs_needs = blueprint[3][2]
+
     if minutes == @max_minutes
       candidates << [[0, 0, 0, 0], [0, 0, 0, 0], 0]
     else
@@ -105,21 +109,18 @@ class Day19
       candidates << [blueprint[3], [0, 0, 0, 1], build_time] if has_time
 
       if build_time.abs > 0
-        max_cost = blueprint[3][2]
-        obs_needed = robot_needed?(max_cost, robots, resources, 2, time_left, 3)
+        obs_needed = robot_needed?(obs_needs, robots, resources, 2, time_left, 3)
         mins_to_build = time_for_obs(blueprint[2], robots, resources)
         has_time, build_time = can_build_robot?(mins_to_build, time_left)
         candidates << [blueprint[2], [0, 0, 1, 0], build_time] if obs_needed && has_time
 
-        max_cost = blueprint[2][1]
-        clay_needed = obs_needed && robot_needed?(max_cost, robots, resources, 1, time_left, 5)
+        clay_needed = obs_needed && robot_needed?(clay_needs, robots, resources, 1, time_left, 5)
         mins_to_build = time_for_clay(blueprint[1], robots, resources)
         has_time, build_time = can_build_robot?(mins_to_build, time_left)
         candidates << [blueprint[1], [0, 1, 0, 0], build_time] if clay_needed && has_time
 
         if time_left >= blueprint[0][0] + 2
-          max_cost = [blueprint[3][0], blueprint[2][0], blueprint[1][0]].max
-          ore_needed = robot_needed?(max_cost, robots, resources, 0, time_left, 3)
+          ore_needed = robot_needed?(ore_needs, robots, resources, 0, time_left, 3)
           mins_to_build = time_for_ore(blueprint[0], robots, resources)
           has_time, build_time = can_build_robot?(mins_to_build, time_left)
           candidates << [blueprint[0], [1, 0, 0, 0], build_time] if ore_needed && has_time
@@ -128,10 +129,6 @@ class Day19
         candidates << [[0, 0, 0, 0], [0, 0, 0, 0], 0] if candidates.length == 0
       end
     end
-
-    ore_needs = blueprint.map { |b| b[0] }.max
-    clay_needs = blueprint[2][1]
-    obs_needs = blueprint[3][2]
 
     candidates.map do |costs, robots, mins|
       new_ore = ore + ore_r*(mins+1) - costs[0]
