@@ -105,18 +105,21 @@ class Day19
       candidates << [blueprint[3], [0, 0, 0, 1], build_time] if has_time
 
       if build_time.abs > 0
-        obs_needed = robot_needed?(blueprint, robots, resources, 2, time_left)
+        max_cost = blueprint[3][2]
+        obs_needed = robot_needed?(max_cost, robots, resources, 2, time_left, 3)
         mins_to_build = time_for_obs(blueprint[2], robots, resources)
         has_time, build_time = can_build_robot?(mins_to_build, time_left)
         candidates << [blueprint[2], [0, 0, 1, 0], build_time] if obs_needed && has_time
 
-        clay_needed = obs_needed && robot_needed?(blueprint, robots, resources, 1, time_left)
+        max_cost = blueprint[2][1]
+        clay_needed = obs_needed && robot_needed?(max_cost, robots, resources, 1, time_left, 5)
         mins_to_build = time_for_clay(blueprint[1], robots, resources)
         has_time, build_time = can_build_robot?(mins_to_build, time_left)
         candidates << [blueprint[1], [0, 1, 0, 0], build_time] if clay_needed && has_time
 
         if time_left >= blueprint[0][0] + 2
-          ore_needed = robot_needed?(blueprint, robots, resources, 0, time_left)
+          max_cost = [blueprint[3][0], blueprint[2][0], blueprint[1][0]].max
+          ore_needed = robot_needed?(max_cost, robots, resources, 0, time_left, 3)
           mins_to_build = time_for_ore(blueprint[0], robots, resources)
           has_time, build_time = can_build_robot?(mins_to_build, time_left)
           candidates << [blueprint[0], [1, 0, 0, 0], build_time] if ore_needed && has_time
@@ -148,9 +151,8 @@ class Day19
     end
   end
 
-  private def robot_needed?(blueprint, robots, resources, idx, time_left)
-    pays_off = time_left >= (blueprint[3][idx] > 0 ? 3 : 5)
-    max_cost = blueprint.map { |b| b[idx] }.max
+  private def robot_needed?(max_cost, robots, resources, idx, time_left, threshold)
+    pays_off = time_left >= threshold
     not_enough_robots = robots[idx] < max_cost
     not_enough_resources = resources[idx] + robots[idx] * time_left < max_cost * time_left
     
