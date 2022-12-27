@@ -36,7 +36,7 @@ class Day19
   end
 
   private def solve(blueprint)
-    init_key = build_key(1,0,0,0,1,0,0,0)
+    init_key = [1,0,0,0,1,0,0,0]
     queue = [init_key]
     acc = { init_key => 0 }
     max_g = 0
@@ -44,14 +44,14 @@ class Day19
     while queue.length > 0
       key = queue.shift
       geode = acc[key]
-      minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = read_key(key)
+      minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = key
       if ceiling(geode, geode_r, minutes) >= @global_floor
         candidates(ore, clay, obs, ore_r, clay_r, obs_r, geode_r, blueprint, minutes).each do |o,c,ob,g,o_r,c_r,ob_r,g_r,mins|
           g += geode
           if mins > @max_minutes
             max_g = [g, max_g].max
           else
-            key = build_key(mins,o,c,ob,o_r,c_r,ob_r,g_r)
+            key = [mins,o,c,ob,o_r,c_r,ob_r,g_r]
             @global_floor = [@global_floor, floor(g, g_r, mins)].max
             if acc[key]
               acc[key] = [g, acc[key]].max
@@ -199,30 +199,6 @@ class Day19
   private def ceiling(geode, geode_r, minutes)
     minutes_left = @max_minutes - minutes + 1
     geode + geode_r*minutes_left + ((minutes_left)*(minutes_left+1))/2
-  end
-
-  private def build_key(*args)
-    base = 1
-    key = 0
-    args.each do |arg|
-      key += base * arg
-      base *= 1000
-    end
-    key
-  end
-
-  private def read_key(key)
-    base1 = 1
-    base2 = 1000
-    res = []
-    i = 0
-    while i < 8
-      res << (key % base2) / base1
-      base1 *= 1000
-      base2 *= 1000
-      i += 1
-    end
-    res
   end
 
 end
