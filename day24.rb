@@ -43,10 +43,8 @@ class Day24
   end
 
   private def free(x, y, minutes)
-    minutes = minutes % @lcm
-
-    return false if @clashes[x][y][0].include?(minutes % @rows)
-    !@clashes[x][y][1].include?(minutes % @columns)
+    return false if @clashes[x][y][0][minutes % @rows]
+    !@clashes[x][y][1][minutes % @columns]
   end
 
   private def precompute_neighbors
@@ -75,11 +73,19 @@ class Day24
         column_patterns[i-1] << [j-1, -1] if c == "^"
       end
     end
-    @clashes = Array.new(@columns) { Array.new(@rows) { [] } }
+    @clashes = Array.new(@columns) { Array.new(@rows) { {} } }
     (0..@columns-1).each do |i|
       (0..@rows-1).each do |j|
-        columns = column_patterns[i].map { |y, d| (j-y)*d % @rows }
-        rows = row_patterns[j].map { |x, d| (i-x)*d % @columns }
+        columns = Array.new(@columns, false)
+        column_patterns[i].each do |y, d|
+          pos = (j-y)*d % @rows
+          columns[pos] = true
+        end
+        rows = Array.new(@columns, false)
+        row_patterns[j].each do |x, d|
+          pos = (i-x)*d % @columns
+          rows[pos] = true
+        end
         @clashes[i][j] = [columns, rows]
       end
     end
