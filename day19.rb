@@ -6,6 +6,7 @@ class Day19
       line =~ /Blueprint \d+\: Each ore robot costs (\d+) ore\. Each clay robot costs (\d+) ore\. Each obsidian robot costs (\d+) ore and (\d+) clay\. Each geode robot costs (\d+) ore and (\d+) obsidian\./
       [$1.to_i, $2.to_i, $3.to_i, $4.to_i, $5.to_i, $6.to_i]
     end
+    pregenerate_ceiling
   end
 
   def one
@@ -39,7 +40,7 @@ class Day19
     max_g = candidates(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r, blueprint).map do |mins,o,c,ob,g,o_r,c_r,ob_r,g_r|
       if mins > @max_minutes
         g
-      elsif ceiling(o, ob, g + geodes, o_r, ob_r, g_r, mins, blueprint) >= @global_floor
+      elsif ceiling(o, ob, g + geodes, o_r, ob_r, g_r, mins, blueprint[4], blueprint[5]) >= @global_floor
         nkey = [mins,o,c,ob,o_r,c_r,ob_r,g_r]
         @global_floor = [@global_floor, floor(g + geodes, g_r, mins)].max
         g + dfs(blueprint, nkey, g + geodes, memo)
@@ -159,21 +160,35 @@ class Day19
     geode + geode_r * minutes_left
   end
   
-  private def ceiling(ore, obs, geode, ore_r, obs_r, geode_r, minutes, blueprint)
-    if obs >= blueprint[5]
+  private def ceiling(ore, obs, geode, ore_r, obs_r, geode_r, minutes, ore_cost, obs_cost)
+    if obs >= obs_cost
       time_for_obs = 0
     else
-      time_for_obs = ((0.5 - obs_r) + Math.sqrt((0.5 - obs_r)**2 + 2*(blueprint[5] - obs))).ceil
+      time_for_obs = @ceiling_cache[obs_cost][obs][obs_r]
     end
-    if ore >= blueprint[4]
+    if ore >= ore_cost
       time_for_ore = 0
     else
-      time_for_ore = ((0.5 - ore_r) + Math.sqrt((0.5 - ore_r)**2 + 2*(blueprint[4] - ore))).ceil
+      time_for_ore = @ceiling_cache[ore_cost][ore][ore_r]
     end
     minutes_left = @max_minutes - minutes + 1
     current_production = geode + geode_r*minutes_left
     minutes_left -= [time_for_obs, time_for_ore].max
     current_production + ((minutes_left)*(minutes_left+1))/2
+  end
+
+  private def pregenerate_ceiling
+    @ceiling_cache = Array.new(21) { Array.new(20) { Array.new(21, 1) } }
+    (0..20).each do |cost|
+      (0..19).each do |resource|
+        next if resource >= cost
+        (0..20).each do |robot|
+          if resource + robot < cost
+            @ceiling_cache[cost][resource][robot] = ((0.5 - robot) + Math.sqrt((0.5 - robot)**2 + 2*(cost - resource))).ceil
+          end
+        end
+      end
+    end
   end
 
 end
