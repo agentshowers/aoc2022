@@ -42,7 +42,7 @@ class Day19
     max_g = candidates(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r, blueprint).map do |mins,o,c,ob,g,o_r,c_r,ob_r,g_r|
       if mins > @max_minutes
         g
-      elsif ceiling(g + geodes, geode_r, mins) >= @global_floor
+      elsif ceiling(o, ob, g + geodes, o_r, ob_r, g_r, mins, blueprint) >= @global_floor
         nkey = [mins,o,c,ob,o_r,c_r,ob_r,g_r]
         @global_floor = [@global_floor, floor(g + geodes, g_r, mins)].max
         g + dfs(blueprint, nkey, g + geodes, memo)
@@ -162,9 +162,21 @@ class Day19
     geode + geode_r * minutes_left
   end
   
-  private def ceiling(geode, geode_r, minutes)
+  private def ceiling(ore, obs, geode, ore_r, obs_r, geode_r, minutes, blueprint)
+    if obs >= blueprint[3][2]
+      time_for_obs = 0
+    else
+      time_for_obs = ((0.5 - obs_r) + Math.sqrt((0.5 - obs_r)**2 + 2*(blueprint[3][2] - obs))).ceil
+    end
+    if ore >= blueprint[3][0]
+      time_for_ore = 0
+    else
+      time_for_ore = ((0.5 - ore_r) + Math.sqrt((0.5 - ore_r)**2 + 2*(blueprint[3][0] - ore))).ceil
+    end
     minutes_left = @max_minutes - minutes + 1
-    geode + geode_r*minutes_left + ((minutes_left)*(minutes_left+1))/2
+    current_production = geode + geode_r*minutes_left
+    minutes_left -= [time_for_obs, time_for_ore].max
+    current_production + ((minutes_left)*(minutes_left+1))/2
   end
 
 end
