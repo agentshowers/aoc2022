@@ -80,7 +80,7 @@ class Day24
       (0..@rows-1).each do |j|
         columns = column_patterns[i].map { |y, d| (j-y)*d % @rows }
         rows = row_patterns[j].map { |x, d| (i-x)*d % @columns }
-        @clashes[i][j] = [columns.sort, rows.sort]
+        @clashes[i][j] = [columns, rows]
       end
     end
   end
