@@ -53,9 +53,7 @@ class Day19
           else
             key = [mins,o,c,ob,o_r,c_r,ob_r,g_r]
             @global_floor = [@global_floor, floor(g, g_r, mins)].max
-            if acc[key]
-              acc[key] = [g, acc[key]].max
-            else
+            if !acc[key]
               acc[key] = g
               queue << key
             end
