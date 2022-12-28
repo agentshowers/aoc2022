@@ -1,12 +1,12 @@
 class Day24
   INPUT = "day24.input"
-  DIRECTIONS = [[1, 0], [0, 1], [-1, 0], [0, -1], [0, 0]]
 
   def initialize
     lines = File.readlines(INPUT, chomp: true)
     @rows = lines.length - 2
     @columns = lines[0].length - 2
     @lcm = @rows.lcm(@columns)
+    precompute_neighbors
     precompute_patterns(lines)
   end
 
@@ -30,10 +30,10 @@ class Day24
     queue = [init_state]
     while queue.length > 0
       x, y, minutes = queue.shift
-      DIRECTIONS.each do |dx, dy|
-        nx, ny, nmins = [x+dx, y+dy, minutes+1]
+      @neighbors[x][y].each do |nx, ny|
+        nmins = minutes+1
         nstate = [nx, ny, nmins]
-        if !visited[nstate] && in_bounds?(nx, ny) && free(nx, ny, nmins)
+        if !visited[nstate] && free(nx, ny, nmins)
           visited[nstate] = true
           return nmins + 1 if nx == end_x && ny == end_y
           queue << nstate
@@ -42,15 +42,24 @@ class Day24
     end
   end
 
-  private def in_bounds?(x, y)
-    x >= 0 && x < @columns && y >= 0 && y < @rows
-  end
-
   private def free(x, y, minutes)
     minutes = minutes % @lcm
 
     return false if @clashes[x][y][0].include?(minutes % @rows)
     !@clashes[x][y][1].include?(minutes % @columns)
+  end
+
+  private def precompute_neighbors
+    @neighbors = Array.new(@columns) { Array.new(@rows) { [] } }
+    (0..@columns-1).each do |i|
+      (0..@rows-1).each do |j|
+        @neighbors[i][j] << [i, j]
+        @neighbors[i][j] << [i+1, j] if i < @columns - 1
+        @neighbors[i][j] << [i-1, j] if i > 0
+        @neighbors[i][j] << [i, j+1] if j < @rows - 1
+        @neighbors[i][j] << [i, j-1] if j > 0
+      end
+    end
   end
 
   private def precompute_patterns(lines)
