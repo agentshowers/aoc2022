@@ -12,76 +12,42 @@ class Day19
   end
 
   def one
-    #return 1115
     @max_minutes = 24
     @blueprints.each_with_index.map do |b, i|
-      #puts "solving #{i}"
       geodes = solve(b)
-      #puts "got #{geodes}"
       geodes * (i+1)
     end.sum
   end
 
   def two
-    #return 25056
     @max_minutes = 32
     product = 1
     @blueprints[0..2].each_with_index.map do |b, i|
-      #puts "solving #{i}"
       geodes = solve(b)
-      #puts "got #{geodes}"
       product *= geodes
     end.sum
     product
   end
 
   private def solve(blueprint)
+    @global_floor = 0
     init_key = [1,0,0,0,1,0,0,0]
-    queue = [init_key]
-    acc = { init_key => 0 }
-    max_g = 0
-    @global_floor = 0
-    while queue.length > 0
-      key = queue.shift
-      geode = acc[key]
-      minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = key
-      if ceiling(geode, geode_r, minutes) >= @global_floor
-        candidates(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r, blueprint).each do |mins,o,c,ob,g,o_r,c_r,ob_r,g_r|
-          g += geode
-          if mins > @max_minutes
-            max_g = [g, max_g].max
-          else
-            key = [mins,o,c,ob,o_r,c_r,ob_r,g_r]
-            @global_floor = [@global_floor, floor(g, g_r, mins)].max
-            if !acc[key]
-              acc[key] = g
-              queue << key
-            end
-          end
-        end
-      end
-    end
-    max_g
-  end
-
-  private def solve_dfs(blueprint)
-    @global_floor = 0
-    init_key = build_key(1,0,0,0,1,0,0,0)
     dfs(blueprint, init_key, 0, {})
   end
 
   private def dfs(blueprint, key, geodes, memo)
     return memo[key] if memo[key]
-
-    #puts read_key(key).to_s
-    minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = read_key(key)
+    
+    minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r = key
     max_g = candidates(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r, blueprint).map do |mins,o,c,ob,g,o_r,c_r,ob_r,g_r|
       if mins > @max_minutes
         g
+      elsif ceiling(g + geodes, geode_r, mins) >= @global_floor
+        nkey = [mins,o,c,ob,o_r,c_r,ob_r,g_r]
+        @global_floor = [@global_floor, floor(g + geodes, g_r, mins)].max
+        g + dfs(blueprint, nkey, g + geodes, memo)
       else
-        key = build_key(mins,o,c,ob,o_r,c_r,ob_r,g_r)
-        #@global_floor = [@global_floor, floor(g, g_r, mins)].max
-        g + dfs(blueprint, key, g + geodes, memo)
+        0
       end
     end.max
 
