@@ -20,10 +20,6 @@ class Day23
   ]
 
   def initialize
-    @min_x = MAX
-    @max_x = 0
-    @min_y = MAX
-    @max_y = 0
     @map = Array.new(MAX*MAX)
     @candidates = {}
     id = 0
@@ -35,7 +31,6 @@ class Day23
           @map[c] = elf
           @candidates[id] = elf
           initial_neighbors(elf)
-          boundaries(i + BUFFER, j + BUFFER)
           id += 1
         end
       end
@@ -55,7 +50,10 @@ class Day23
   private def rounds
     i = 0
     loop do
-      @p1 = (@max_x - @min_x + 1) * (@max_y - @min_y + 1) - @total_elves if i == 10
+      if i == 10
+        min_x, max_x, min_y, max_y = boundaries
+        @p1 = (max_x - min_x + 1) * (max_y - min_y + 1) - @total_elves
+      end
       round(i)
       i += 1
       if @candidates.empty?
@@ -84,8 +82,7 @@ class Day23
     end
 
     proposals.each do |c, (elf, dir)|
-      move(elf, dir)
-      boundaries(c / MAX, c % MAX)
+      move(elf, c, dir)
     end
   end
 
@@ -102,9 +99,7 @@ class Day23
     nil
   end
 
-  private def move(elf, dir)
-    dx, dy = MOVES[dir][0]
-    coordinates = elf.coordinates + MAX*dx + dy
+  private def move(elf, coordinates, dir)
     recalculate_neighbors(elf, dir, true)
 
     @map[elf.coordinates] = nil
@@ -150,17 +145,26 @@ class Day23
     end
   end
   
-  private def boundaries(x, y)
-    @min_x = [x, @min_x].min
-    @max_x = [x, @max_x].max
-    @min_y = [y, @min_y].min
-    @max_y = [y, @max_y].max
+  private def boundaries
+    min_x, max_x, min_y, max_y = [MAX, 0, MAX, 0]
+    @map.each_with_index do |elf, i|
+      if elf
+        x = i / MAX
+        y = i % MAX
+        min_x = [x, min_x].min
+        max_x = [x, max_x].max
+        min_y = [y, min_y].min
+        max_y = [y, max_y].max
+      end
+    end
+    [min_x, max_x, min_y, max_y]
   end
 
   def print
-    (@min_y..@max_y).each do |y|
+    min_x, max_x, min_y, max_y = boundaries
+    (min_y..max_y).each do |y|
       str = ""
-      (@min_x..@max_x).each do |x|
+      (min_x..max_x).each do |x|
         if @map[MAX*x + y]
           str << @map[MAX*x + y].neighbors.to_s
         else
