@@ -47,7 +47,6 @@ class Day23
   end
 
   def two
-    puts "Max: #{[@max_x, @max_y]}"
     @p2
   end
 
