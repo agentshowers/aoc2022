@@ -19,17 +19,17 @@ class Day23
   ]
 
   def initialize
-    @min_x = 10000
+    @min_x = 1000
     @max_x = 0
-    @min_y = 10000
+    @min_y = 1000
     @max_y = 0
-    @map = {}
+    @map = Array.new(1000000)
     @candidates = {}
     id = 0
     File.readlines(INPUT, chomp: true).each_with_index do |line, j|
       line.split("").each_with_index do |s, i|
         if s == "#"
-          c = 10000*(i + BUFFER) + (j + BUFFER)
+          c = 1000*(i + BUFFER) + (j + BUFFER)
           elf = Elf.new(c, id)
           @map[c] = elf
           @candidates[id] = elf
@@ -47,13 +47,14 @@ class Day23
   end
 
   def two
+    puts "Max: #{[@max_x, @max_y]}"
     @p2
   end
 
   private def rounds
     i = 0
     loop do
-      @p1 = (@max_x - @min_x + 1) * (@max_y - @min_y + 1) - @map.values.length if i == 10
+      @p1 = (@max_x - @min_x + 1) * (@max_y - @min_y + 1) - @map.select{_1}.length if i == 10
       round(i)
       i += 1
       if @candidates.empty?
@@ -83,7 +84,7 @@ class Day23
 
     proposals.each do |c, (elf, dir)|
       move(elf, dir)
-      boundaries(c / 10000, c % 10000)
+      boundaries(c / 1000, c % 1000)
     end
   end
 
@@ -91,9 +92,9 @@ class Day23
     (0..3).each do |i|
       dir_idx = (round+i) % 4
       directions = MOVES[dir_idx]
-      if directions.none? { |dx, dy| @map[elf.coordinates + 10000*dx + dy] }
+      if directions.none? { |dx, dy| @map[elf.coordinates + 1000*dx + dy] }
         dx, dy = directions.first
-        return [elf.coordinates + 10000*dx + dy, dir_idx]
+        return [elf.coordinates + 1000*dx + dy, dir_idx]
       end
     end
 
@@ -102,10 +103,10 @@ class Day23
 
   private def move(elf, dir)
     dx, dy = MOVES[dir][0]
-    coordinates = elf.coordinates + 10000*dx + dy
+    coordinates = elf.coordinates + 1000*dx + dy
     recalculate_neighbors(elf, dir, true)
 
-    @map.delete(elf.coordinates)
+    @map[elf.coordinates] = nil
     elf.coordinates = coordinates
     @map[coordinates] = elf
   
@@ -124,7 +125,7 @@ class Day23
     add_threshold = out ? 5 : 1
     dir = opposite(dir) if out
     MOVES[dir].each do |dx, dy|
-      c = elf.coordinates + 10000*dx + dy
+      c = elf.coordinates + 1000*dx + dy
       if @map[c]
         @map[c].neighbors += nx
         @candidates.delete(@map[c].id) if @map[c].neighbors == del_threshold
@@ -140,7 +141,7 @@ class Day23
 
   private def initial_neighbors(elf)
     DIRECTIONS.values.map do |dx, dy|
-      c = elf.coordinates + 10000*dx + dy
+      c = elf.coordinates + 1000*dx + dy
       if @map[c]
         elf.neighbors += 1
         @map[c].neighbors += 1
@@ -159,8 +160,8 @@ class Day23
     (@min_y..@max_y).each do |y|
       str = ""
       (@min_x..@max_x).each do |x|
-        if @map[10000*x + y]
-          str << @map[10000*x + y].neighbors.to_s
+        if @map[1000*x + y]
+          str << @map[1000*x + y].neighbors.to_s
         else
           str << "."
         end
