@@ -4,21 +4,20 @@ class Day20
   def initialize
     @zero = nil
     lines = File.readlines(INPUT, chomp: true)
-    @bucket_list = BucketList.new(lines.length)
-    @code = lines.each_with_index.map do |x, i|
-      b = i / BucketList::SIZE
-      node = Node.new(x.to_i, b)
-      @bucket_list.buckets[b] << node
+    @code = lines.map do |x|
+      node = Node.new(x.to_i)
       @zero = node if x.to_i == 0
       node
     end
   end
 
   def one
+    reset_buckets
     solve(1, 1)
   end
 
   def two
+    reset_buckets
     solve(10, 811589153)
   end
 
@@ -37,6 +36,15 @@ class Day20
     [1000, 2000, 3000].map do |i|
       @bucket_list.get((zero_idx + i) % size).x
     end.sum * key
+  end
+
+  private def reset_buckets
+    @bucket_list = BucketList.new(@code.length)
+    @code.each_with_index do |node, i|
+      b = i / BucketList::SIZE
+      @bucket_list.buckets[b] << node
+      node.bucket = b
+    end
   end
 end
 
@@ -86,8 +94,8 @@ class Node
   attr_reader :x
   attr_accessor :bucket
 
-  def initialize(x, bucket)
+  def initialize(x)
     @x = x
-    @bucket = bucket
+    @bucket = 0
   end
 end
