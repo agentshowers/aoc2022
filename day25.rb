@@ -13,7 +13,7 @@ class Day25
   end
 
   def two
-    "Merry Christmas"
+    "⭐"
   end
 
   private def snafu_to_number(snafu)
