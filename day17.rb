@@ -125,7 +125,7 @@ class Day17
   P1_ROCKS = 3200
 
   def initialize
-    @moves = File.read(INPUT).split("")
+    @moves = File.read(INPUT).strip.split("")
     @tower = Array.new(3)
     (0..2).each { |i| @tower[i] = Array.new(7, ".") }
     @tower_height = 0
