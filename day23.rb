@@ -67,7 +67,7 @@ class Day23
     proposals = {}
 
     @candidates.values.each do |elf|
-      if elf.neighbors > 0 && elf.neighbors < 6
+      if elf.neighbors > 0
         c, dir = possible_move(elf, i)
         if c
           if proposals[c]
@@ -117,15 +117,13 @@ class Day23
 
   private def recalculate_neighbors(elf, dir, out)
     nx = out ? -1 : 1
-    del_threshold = out ? 0 : 6
-    add_threshold = out ? 5 : 1
     dir = opposite(dir) if out
     MOVES[dir].each do |dx, dy|
       c = elf.coordinates + MAX*dx + dy
       if @map[c]
         @map[c].neighbors += nx
-        @candidates.delete(@map[c].id) if @map[c].neighbors == del_threshold
-        @candidates[@map[c].id] = @map[c] if @map[c].neighbors == add_threshold
+        @candidates.delete(@map[c].id) if out && @map[c].neighbors == 0
+        @candidates[@map[c].id] = @map[c] if !out && @map[c].neighbors == 1
         elf.neighbors += nx
       end
     end
