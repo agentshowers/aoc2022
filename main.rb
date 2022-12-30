@@ -21,7 +21,7 @@ end
 
 def download_inputs(range, force)
   raise MissingCookieError.new if !File.exist?("cookie")
-  cookie = File.read("cookie")
+  cookie = File.read("cookie").strip
 
   range.each do |n|
     printf("\r\e[KDownloading inputs #{n}/#{DAYS}")
@@ -117,11 +117,11 @@ if options[:day]
   range = (day..day)
 end
 
-puts "***************************************************"
-puts "*                                                 *"
-puts "*          🎄🎄 Advent of Code 2022 🎄🎄          *"
-puts "*                                                 *"
-puts "***************************************************"
+puts "******************************************************************"
+puts "*                                                                *"
+puts "*                  🎄🎄 Advent of Code 2022 🎄🎄                 *"
+puts "*                                                                *"
+puts "******************************************************************"
 puts ""
 
 begin
@@ -132,7 +132,7 @@ begin
 rescue WrongOutputError => e
   printf("\r\e[K")
   puts e.message
-rescue StandardError => e
+rescue MissingCookieError => e
   printf("\r\e[K")
   puts e.message
   puts ""
