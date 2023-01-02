@@ -2,40 +2,19 @@ class Day23
   INPUT = "day23.input"
   BUFFER = 20
   MAX = 200
-  DIRECTIONS = {
-    "NW" => [-1, -1],
-    "N" => [0, -1],
-    "NE" =>  [1, -1],
-    "E" => [1, 0],
-    "SE" => [1, 1],
-    "S" => [0, 1],
-    "SW" => [-1, 1],
-    "W" => [-1, 0]
-  }
-  MOVES = [
-    [DIRECTIONS["N"], DIRECTIONS["NW"], DIRECTIONS["NE"]],
-    [DIRECTIONS["S"], DIRECTIONS["SW"], DIRECTIONS["SE"]],
-    [DIRECTIONS["W"], DIRECTIONS["SW"], DIRECTIONS["NW"]],
-    [DIRECTIONS["E"], DIRECTIONS["SE"], DIRECTIONS["NE"]],
-  ]
 
   def initialize
-    @map = Array.new(MAX*MAX)
+    @map = Array.new(MAX, 0)
     @candidates = {}
-    id = 0
+    @total_elves = 0
     File.readlines(INPUT, chomp: true).each_with_index do |line, j|
       line.split("").each_with_index do |s, i|
         if s == "#"
-          c = MAX*(i + BUFFER) + (j + BUFFER)
-          elf = Elf.new(c, id)
-          @map[c] = elf
-          @candidates[id] = elf
-          initial_neighbors(elf)
-          id += 1
+          @map[j+BUFFER] += 2 ** (i + BUFFER)
+          @total_elves += 1
         end
       end
     end
-    @total_elves = id
     rounds
   end
 
@@ -48,142 +27,120 @@ class Day23
   end
 
   private def rounds
+    directions = ["N", "S", "W", "E"]
     i = 0
     loop do
       if i == 10
         min_x, max_x, min_y, max_y = boundaries
         @p1 = (max_x - min_x + 1) * (max_y - min_y + 1) - @total_elves
       end
-      round(i)
-      i += 1
-      if @candidates.empty?
+      if round(directions)
         @p2 = i + 1
         break
       end
+      directions.rotate!(1)
+      i += 1
     end
   end
 
-  private def round(i)
-    proposals = {}
+  private def round(directions)
+    stable = true
+    proposals = Array.new(MAX, 0)
+    
+    (0..@map.length-1).each do |i|
+      stable = move_row(i, proposals, directions) && stable
+    end
 
-    @candidates.values.each do |elf|
-      if elf.neighbors > 0
-        c, dir = possible_move(elf, i)
-        if c
-          if proposals[c]
-            proposals.delete(c)
-          else
-            proposals[c] = [elf, dir]
-          end
+    proposals.each_with_index do |p, i|
+      @map[i] = p
+    end
+
+    stable
+  end
+
+  private def move_row(row_idx, proposals, directions)
+    return true if @map[row_idx] == 0
+
+    row_proposal = free_neighbors(
+      @map[row_idx],
+      [ 
+        @map[row_idx-1] >> 1, @map[row_idx-1], @map[row_idx-1] << 1,
+        @map[row_idx]   >> 1,                  @map[row_idx]   << 1,
+        @map[row_idx+1] >> 1, @map[row_idx+1], @map[row_idx+1] << 1
+      ]
+    )
+    if row_proposal == @map[row_idx]
+      proposals[row_idx] = proposals[row_idx] | row_proposal
+      return true
+    end
+
+    yet_to_move = @map[row_idx] ^ row_proposal
+    
+    directions.each do |dir|
+      case dir
+      when "N"
+        prop = free_neighbors(yet_to_move, [@map[row_idx-1], @map[row_idx-1] << 1, @map[row_idx-1] >> 1])
+        clashes = prop & proposals[row_idx-1]
+        if clashes > 0
+          proposals[row_idx-2] = proposals[row_idx-2] | clashes
+          proposals[row_idx-1] = proposals[row_idx-1] ^ clashes
+          row_proposal = row_proposal | clashes
         end
-      else
-        @candidates.delete(elf.id)
+        proposals[row_idx-1] = proposals[row_idx-1] | (prop ^ clashes)
+      when "S"
+        prop = free_neighbors(yet_to_move, [@map[row_idx+1], @map[row_idx+1] << 1, @map[row_idx+1] >> 1])
+        proposals[row_idx+1] = proposals[row_idx+1] | prop
+      when "W"
+        prop = free_neighbors(yet_to_move, [@map[row_idx-1] << 1, @map[row_idx] << 1, @map[row_idx+1] << 1])
+        clashes = (prop >> 1) & row_proposal
+        if clashes > 0
+          row_proposal = row_proposal ^ clashes | (clashes << 1) | (clashes >> 1)
+        end
+        row_proposal = row_proposal | ((prop ^ (clashes << 1)) >> 1)
+      when "E"
+        prop = free_neighbors(yet_to_move, [@map[row_idx-1] >> 1, @map[row_idx] >> 1, @map[row_idx+1] >> 1])
+        clashes = (prop << 1) & row_proposal
+        if clashes > 0
+          row_proposal = row_proposal ^ clashes | (clashes << 1) | (clashes >> 1)
+        end
+        row_proposal = row_proposal | ((prop ^ (clashes >> 1)) << 1)
       end
+      yet_to_move = yet_to_move ^ prop
     end
 
-    proposals.each do |c, (elf, dir)|
-      move(elf, c, dir)
-    end
+    proposals[row_idx] = proposals[row_idx] | row_proposal | yet_to_move
+    row_proposal == @map[row_idx]
   end
 
-  private def possible_move(elf, round)
-    (0..3).each do |i|
-      dir_idx = (round+i) % 4
-      directions = MOVES[dir_idx]
-      if directions.none? { |dx, dy| @map[elf.coordinates + MAX*dx + dy] }
-        dx, dy = directions.first
-        return [elf.coordinates + MAX*dx + dy, dir_idx]
-      end
-    end
-
-    nil
+  private def free_neighbors(row, adjacent)
+    occupied = row & adjacent.inject(0, :|)
+    row ^ occupied
   end
 
-  private def move(elf, coordinates, dir)
-    recalculate_neighbors(elf, coordinates, dir)
-
-    @map[elf.coordinates] = nil
-    elf.coordinates = coordinates
-    @map[coordinates] = elf
-
-    if elf.neighbors == 0
-      @candidates.delete(elf.id)
-    else
-      @candidates[elf.id] = elf
-    end
-  end
-
-  private def recalculate_neighbors(elf, coordinates, dir)
-    MOVES[dir].each do |dx, dy|
-      elf2 = @map[elf.coordinates - MAX*dx - dy]
-      if elf2
-        elf2.neighbors -= 1
-        @candidates.delete(elf2.id) if elf2.neighbors == 0
-        elf.neighbors -= 1
-      end
-      elf2 = @map[coordinates + MAX*dx + dy]
-      if elf2
-        elf2.neighbors += 1
-        @candidates[elf2.id] = elf2 if elf2.neighbors == 1
-        elf.neighbors += 1
-      end
-    end
-  end
-
-  private def opposite(dir)
-    (1 - dir%2) + 2*(dir/2)
-  end
-
-  private def initial_neighbors(elf)
-    DIRECTIONS.values.map do |dx, dy|
-      c = elf.coordinates + MAX*dx + dy
-      if @map[c]
-        elf.neighbors += 1
-        @map[c].neighbors += 1
-      end
-    end
-  end
-  
   private def boundaries
     min_x, max_x, min_y, max_y = [MAX, 0, MAX, 0]
-    @map.each_with_index do |elf, i|
-      if elf
-        x = i / MAX
-        y = i % MAX
-        min_x = [x, min_x].min
-        max_x = [x, max_x].max
-        min_y = [y, min_y].min
-        max_y = [y, max_y].max
+    @map.each_with_index do |row, i|
+      if row > 0
+        row_max_x = Math.log2(row).floor
+        row_min_x = 0
+        while row % 2 == 0
+          row = row / 2
+          row_min_x += 1
+        end
+        min_x = [row_min_x, min_x].min
+        max_x = [row_max_x, max_x].max
+        min_y = [i, min_y].min
+        max_y = [i, max_y].max
       end
     end
     [min_x, max_x, min_y, max_y]
   end
 
   def print
-    min_x, max_x, min_y, max_y = boundaries
-    (min_y..max_y).each do |y|
-      str = ""
-      (min_x..max_x).each do |x|
-        if @map[MAX*x + y]
-          str << @map[MAX*x + y].neighbors.to_s
-        else
-          str << "."
-        end
-      end
-      puts str
+    puts boundaries.to_s
+    @map.each do |l|
+      puts l.to_s(2).rjust(MAX, '0').reverse.gsub("0", ".").gsub("1", "#")
     end
   end
   
-end
-
-class Elf
-  attr_accessor :coordinates, :neighbors
-  attr_reader :id
-
-  def initialize(coordinates, id)
-    @id = id
-    @coordinates = coordinates
-    @neighbors = 0
-  end
-
 end
