@@ -3,92 +3,129 @@ class Day24
 
   def initialize
     lines = File.readlines(INPUT, chomp: true)
-    @rows = lines.length - 2
-    @columns = lines[0].length - 2
-    @lcm = @rows.lcm(@columns)
-    precompute_neighbors
-    precompute_patterns(lines)
+    @width = lines[0].length - 2
+    @right_mask = (1 << (@width - 1))
+    @left_mask = @right_mask - 1
+    @max = 2.pow(@width)-1
+
+    @up = lines.map { |l| l[1..-2].gsub("^","0").gsub(/[^0]/,"1").to_i(2) }
+    @down = lines.map { |l| l[1..-2].gsub("v","0").gsub(/[^0]/,"1").to_i(2) }
+    @left = lines.map { |l| l[1..-2].gsub("<","0").gsub(/[^0]/,"1").to_i(2) }
+    @right = lines.map { |l| l[1..-2].gsub(">","0").gsub(/[^0]/,"1").to_i(2) }
+
+    @walls = Array.new(@up.length, @max)
+    @walls[0] = 2.pow(@width - 1)
+    @walls[@up.length-1] = 1
   end
 
   def one
-    @first_trip = bfs(0, 0, @columns - 1, @rows - 1, 0)
+    @first_trip = solve(0, start_position) do |grid|
+      grid.last == 1
+    end
     @first_trip
   end
 
   def two
-    second_trip = bfs(@columns - 1, @rows - 1, 0, 0, @first_trip)
-    bfs(0, 0, @columns - 1, @rows - 1, second_trip)
+    second_trip = solve(@first_trip, end_position) do |grid|
+      grid.first == 2.pow(@width - 1)
+    end
+    third_trip = solve(second_trip, start_position) do |grid|
+      grid.last == 1
+    end
+    third_trip
   end
 
-  private def bfs(start_x, start_y, end_x, end_y, start)
-    loop do
-      start += 1
-      break if free(start_x, start_y, start)
+  private def solve(time, position)
+    while !yield(position)
+      @up = [@max] + @up[1..-2].rotate(1) + [@max]
+      @down = [@max] + @down[1..-2].rotate(-1) + [@max]
+      @left = @left.map { |r| ((r & @left_mask) << 1) | (r >> (@width - 1)) }
+      @right = @right.map { |r| (r >> 1) | (r << (@width - 1)) & @right_mask }
+      new_grid = Array.new(position.length)
+      position.each_with_index do |r, i|
+        r = r | (r << 1) | (r >> 1)
+        r = r | position[i-1] if i > 0
+        r = r | position[i+1] if i < position.length - 1
+        r = r & @up[i] & @down[i] & @left[i] & @right[i] & @walls[i]
+        new_grid[i] = r
+      end
+      position = new_grid
+      time +=1
     end
-    init_state = [start_x, start_y, start]
-    visited = {}
-    queue = [init_state]
-    while queue.length > 0
-      x, y, minutes = queue.shift
-      @neighbors[x][y].each do |nx, ny|
-        nmins = minutes+1
-        nstate = [nx, ny, nmins]
-        if !visited[nstate] && free(nx, ny, nmins)
-          visited[nstate] = true
-          return nmins + 1 if nx == end_x && ny == end_y
-          queue << nstate
+    time
+  end
+
+  private def start_position
+    grid = Array.new(@up.length, 0)
+    grid[0] = 2.pow(@width - 1)
+    grid
+  end
+
+  private def end_position
+    grid = Array.new(@up.length, 0)
+    grid[-1] = 1
+    grid
+  end
+
+  private def print(position)
+    str = @walls.map { |r| r.to_s(2).rjust(@width, "0").gsub("0","#").gsub("1",".") } 
+    @up.each_with_index do |r, j|
+      r.to_s(2).rjust(@width, "0").chars.each_with_index do |c, i|
+        if c == "0"
+          if str[j][i] == "."
+            str[j][i] = "^"
+          elsif str[j][i].to_i > 0
+            str[j][i] = (str[j][i].to_i + 1).to_s
+          else
+            str[j][i] = "2"
+          end
         end
       end
     end
-  end
-
-  private def free(x, y, minutes)
-    return false if @clashes[x][y][0][minutes % @rows]
-    !@clashes[x][y][1][minutes % @columns]
-  end
-
-  private def precompute_neighbors
-    @neighbors = Array.new(@columns) { Array.new(@rows) { [] } }
-    (0..@columns-1).each do |i|
-      (0..@rows-1).each do |j|
-        @neighbors[i][j] << [i, j]
-        @neighbors[i][j] << [i+1, j] if i < @columns - 1
-        @neighbors[i][j] << [i-1, j] if i > 0
-        @neighbors[i][j] << [i, j+1] if j < @rows - 1
-        @neighbors[i][j] << [i, j-1] if j > 0
-      end
-    end
-  end
-
-  private def precompute_patterns(lines)
-    row_patterns = Array.new(@rows) { [] }
-    column_patterns = Array.new(@columns) { [] }
-    lines.each_with_index do |line, j|
-      next if j == 0 || j > @rows
-      line.chars.each_with_index do |c, i|
-        next if i == 0 || i > @columns
-        row_patterns[j-1] << [i-1, 1] if c == ">"
-        row_patterns[j-1] << [i-1, -1] if c == "<"
-        column_patterns[i-1] << [j-1, 1] if c == "v"
-        column_patterns[i-1] << [j-1, -1] if c == "^"
-      end
-    end
-    @clashes = Array.new(@columns) { Array.new(@rows) { {} } }
-    (0..@columns-1).each do |i|
-      (0..@rows-1).each do |j|
-        columns = Array.new(@columns, false)
-        column_patterns[i].each do |y, d|
-          pos = (j-y)*d % @rows
-          columns[pos] = true
+    @down.each_with_index do |r, j|
+      r.to_s(2).rjust(@width, "0").chars.each_with_index do |c, i|
+        if c == "0"
+          if str[j][i] == "."
+            str[j][i] = "v"
+          elsif str[j][i].to_i > 0
+            str[j][i] = (str[j][i].to_i + 1).to_s
+          else
+            str[j][i] = "2"
+          end
         end
-        rows = Array.new(@columns, false)
-        row_patterns[j].each do |x, d|
-          pos = (i-x)*d % @columns
-          rows[pos] = true
-        end
-        @clashes[i][j] = [columns, rows]
       end
     end
+    @left.each_with_index do |r, j|
+      r.to_s(2).rjust(@width, "0").chars.each_with_index do |c, i|
+        if c == "0"
+          if str[j][i] == "."
+            str[j][i] = "<"
+          elsif str[j][i].to_i > 0
+            str[j][i] = (str[j][i].to_i + 1).to_s
+          else
+            str[j][i] = "2"
+          end
+        end
+      end
+    end
+    @right.each_with_index do |r, j|
+      r.to_s(2).rjust(@width, "0").chars.each_with_index do |c, i|
+        if c == "0"
+          if str[j][i] == "."
+            str[j][i] = ">"
+          elsif str[j][i].to_i > 0
+            str[j][i] = (str[j][i].to_i + 1).to_s
+          else
+            str[j][i] = "2"
+          end
+        end
+      end
+    end
+    puts "Winds:"
+    str.each { |s| puts "##{s}#" }
+    puts "Grid:"
+    position.each do |r|
+      puts "." + r.to_s(2).rjust(@width, "0").gsub("0",".").gsub("1","o") + "."
+    end
   end
-
 end
