@@ -23,7 +23,6 @@ class Day20
 
   private def solve(n, key)
     size = @code.length
-    list = @code.dup
     (1..n).each do
       @code.each do |node|
         idx = @bucket_list.index(node)

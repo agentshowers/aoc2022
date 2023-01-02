@@ -15,7 +15,6 @@ class Day16
   end
 
   def one
-    # return 1915
     @memo = {}
     @global_best = 0
     solve("AA", 30, 0, 0)  
@@ -23,7 +22,6 @@ class Day16
   end
 
   def two
-    #return 2772
     @memo = {}
     @global_best = 0
     @save_best = true
@@ -61,7 +59,7 @@ class Day16
 
     max_flow = 0
     best_set = 0
-    if @full_solve || ceiling(valve, minutes_left, unopened, current_flow) >= @global_best
+    if ceiling(valve, minutes_left, unopened, current_flow) >= @global_best
       @useful_valves.keys.each_with_index do |v, i|
         next if unopened & (2.pow(i)) > 0
         if minutes_left - @map[valve][v] - 1 >= 2
