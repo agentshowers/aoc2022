@@ -51,9 +51,7 @@ class Day23
       stable = move_row(i, proposals, directions) && stable
     end
 
-    proposals.each_with_index do |p, i|
-      @map[i] = p
-    end
+    @map = proposals
 
     stable
   end
@@ -61,14 +59,13 @@ class Day23
   private def move_row(row_idx, proposals, directions)
     return true if @map[row_idx] == 0
 
-    row_proposal = free_neighbors(
-      @map[row_idx],
-      [ 
-        @map[row_idx-1] >> 1, @map[row_idx-1], @map[row_idx-1] << 1,
-        @map[row_idx]   >> 1,                  @map[row_idx]   << 1,
-        @map[row_idx+1] >> 1, @map[row_idx+1], @map[row_idx+1] << 1
-      ]
-    )
+    neighbors = [ 
+      @map[row_idx-1] >> 1, @map[row_idx-1], @map[row_idx-1] << 1,
+      @map[row_idx]   >> 1,                  @map[row_idx]   << 1,
+      @map[row_idx+1] >> 1, @map[row_idx+1], @map[row_idx+1] << 1
+    ]
+
+    row_proposal = free_neighbors(@map[row_idx], neighbors)
     if row_proposal == @map[row_idx]
       proposals[row_idx] = proposals[row_idx] | row_proposal
       return true
@@ -79,7 +76,7 @@ class Day23
     directions.each do |dir|
       case dir
       when "N"
-        prop = free_neighbors(yet_to_move, [@map[row_idx-1], @map[row_idx-1] << 1, @map[row_idx-1] >> 1])
+        prop = free_neighbors(yet_to_move, neighbors[0..2])
         clashes = prop & proposals[row_idx-1]
         if clashes > 0
           proposals[row_idx-2] = proposals[row_idx-2] | clashes
@@ -88,17 +85,17 @@ class Day23
         end
         proposals[row_idx-1] = proposals[row_idx-1] | (prop ^ clashes)
       when "S"
-        prop = free_neighbors(yet_to_move, [@map[row_idx+1], @map[row_idx+1] << 1, @map[row_idx+1] >> 1])
+        prop = free_neighbors(yet_to_move, neighbors[5..])
         proposals[row_idx+1] = proposals[row_idx+1] | prop
       when "W"
-        prop = free_neighbors(yet_to_move, [@map[row_idx-1] << 1, @map[row_idx] << 1, @map[row_idx+1] << 1])
+        prop = free_neighbors(yet_to_move, [neighbors[2], neighbors[4], neighbors[7]])
         clashes = (prop >> 1) & row_proposal
         if clashes > 0
           row_proposal = row_proposal ^ clashes | (clashes << 1) | (clashes >> 1)
         end
         row_proposal = row_proposal | ((prop ^ (clashes << 1)) >> 1)
       when "E"
-        prop = free_neighbors(yet_to_move, [@map[row_idx-1] >> 1, @map[row_idx] >> 1, @map[row_idx+1] >> 1])
+        prop = free_neighbors(yet_to_move, [neighbors[0], neighbors[3], neighbors[5]])
         clashes = (prop << 1) & row_proposal
         if clashes > 0
           row_proposal = row_proposal ^ clashes | (clashes << 1) | (clashes >> 1)
