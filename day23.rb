@@ -100,13 +100,11 @@ class Day23
   end
 
   private def move(elf, coordinates, dir)
-    recalculate_neighbors(elf, dir, true)
+    recalculate_neighbors(elf, coordinates, dir)
 
     @map[elf.coordinates] = nil
     elf.coordinates = coordinates
     @map[coordinates] = elf
-  
-    recalculate_neighbors(elf, dir, false)
 
     if elf.neighbors == 0
       @candidates.delete(elf.id)
@@ -115,16 +113,19 @@ class Day23
     end
   end
 
-  private def recalculate_neighbors(elf, dir, out)
-    nx = out ? -1 : 1
-    dir = opposite(dir) if out
+  private def recalculate_neighbors(elf, coordinates, dir)
     MOVES[dir].each do |dx, dy|
-      c = elf.coordinates + MAX*dx + dy
-      if @map[c]
-        @map[c].neighbors += nx
-        @candidates.delete(@map[c].id) if out && @map[c].neighbors == 0
-        @candidates[@map[c].id] = @map[c] if !out && @map[c].neighbors == 1
-        elf.neighbors += nx
+      elf2 = @map[elf.coordinates - MAX*dx - dy]
+      if elf2
+        elf2.neighbors -= 1
+        @candidates.delete(elf2.id) if elf2.neighbors == 0
+        elf.neighbors -= 1
+      end
+      elf2 = @map[coordinates + MAX*dx + dy]
+      if elf2
+        elf2.neighbors += 1
+        @candidates[elf2.id] = elf2 if elf2.neighbors == 1
+        elf.neighbors += 1
       end
     end
   end
