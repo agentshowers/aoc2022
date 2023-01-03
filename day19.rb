@@ -88,7 +88,7 @@ class Day19
           candidates << build_robot(minutes,ore, clay, obs, ore_r, clay_r, obs_r, geode_r, ore_needs, clay_needs, obs_needs, [blueprint[0], 0, 0], [1, 0, 0, 0], build_time) if ore_needed & has_time
         end
 
-        candidates << build_robot(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r, ore_needs, clay_needs, obs_needs, [0, 0, 0], [0, 0, 0, 0], 0) if candidates.length == 0
+        candidates << build_robot(minutes, ore, clay, obs, ore_r, clay_r, obs_r, geode_r, ore_needs, clay_needs, obs_needs, [0, 0, 0], [0, 0, 0, 0], time_left) if candidates.length == 0
       end
     end
 
