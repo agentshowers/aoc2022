@@ -39,8 +39,8 @@ class Day11
   
     (1..rounds).each do
       @monkeys.each_with_index do |(_, op, op_r, tst, t, f), i|
+        activity[i] += items[i].length
         items[i].each do |item|
-          activity[i] += 1
           right = op_r + (1 - (op_r <=> 0)) * item
           item = item.send(op, right)
           item = yield(item)
