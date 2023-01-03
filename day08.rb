@@ -21,10 +21,8 @@ class Day8
   end
 
   def calculate
-    @views = Array.new(n) 
-    (1..n).each { |i| @views[i-1] = Array.new(m, 1) }
-    @visible = Array.new(n) 
-    (1..n).each { |i| @visible[i-1] = Array.new(m, false) }
+    @views = Array.new(n) { Array.new(m, 1) }
+    @visible = Array.new(n) { Array.new(m, false) }
 
     (0..n-1).each do |i|
       iterate(i, 0, 0, 1)
